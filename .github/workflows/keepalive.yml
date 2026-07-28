@@ -1,0 +1,28 @@
+name: Keep Supabase awake
+
+# Le plan gratuit Supabase met un projet en pause après 7 jours sans requête.
+# Ce ping (lundi & jeudi) garde la base éveillée. Il appelle uniquement la fonction
+# publique d'agrégats — aucune donnée personnelle n'est lue.
+
+on:
+  schedule:
+    - cron: '17 6 * * 1,4' # lundi et jeudi à 06:17 UTC (écart max ~4 j, < 7 j)
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase RPC
+        env:
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          SUPABASE_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          curl -sS -X POST \
+            "${SUPABASE_URL}/rest/v1/rpc/balance_public_stats" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{}' \
+            -o /dev/null -w "Supabase a répondu : HTTP %{http_code}\n" \
+            --fail

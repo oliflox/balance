@@ -16,7 +16,7 @@ Réécriture en **React + Vite + TypeScript** de la maquette `Balance.dc.html`, 
 - **Mon suivi** : courbe de poids vs objectif, anneau de progression, série de lundis, mensurations, historique complet.
 - **Nouvelle pesée** : poids + mensurations + petit mot pour le groupe.
 
-Le tout est peuplé de **8 concurrents de démo** (données fidèles à la maquette d'origine) pour que le tableau de bord soit vivant dès la première connexion.
+Un jeu de **8 concurrents de démo** (`supabase/seed.sql`, données fidèles à la maquette) est disponible en option pour remplir le tableau de bord ; sinon la ligue démarre à vide, avec de vrais membres uniquement.
 
 ## Stack
 
@@ -25,32 +25,51 @@ Le tout est peuplé de **8 concurrents de démo** (données fidèles à la maque
 | Front | React 18, Vite 5, TypeScript |
 | Styles | inline styles fidèles à la maquette (fonts Anton + Space Grotesk) |
 | Backend | Supabase (Postgres + Auth + RLS) |
+| Déploiement | GitHub Pages, build automatique via GitHub Actions |
 
-## Démarrage
+## Développement local
 
 ```bash
 npm install
+cp .env.example .env.local   # puis renseigne VITE_SUPABASE_URL et VITE_SUPABASE_ANON_KEY
 npm run dev
 ```
 
-L'appli tourne sur http://localhost:5173.
-
-> La configuration Supabase est déjà dans `.env.local` (projet existant, tables préfixées `balance_`).
-> Pour pointer vers un autre projet, copie `.env.example` → `.env.local` et renseigne l'URL + la clé publishable.
-
-### Build de production
+L'appli tourne sur http://localhost:5173. La clé publishable est faite pour être exposée
+côté navigateur — c'est la RLS qui protège les données.
 
 ```bash
 npm run build      # tsc + vite build → dist/
-npm run preview
+npm run preview    # sert le build de production en local
 ```
+
+## Déploiement (GitHub Pages)
+
+Le déploiement est automatique : chaque `push` sur `main` déclenche
+[`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) qui build et publie sur Pages.
+
+Mise en place (une seule fois) :
+
+1. **Repo public** sur GitHub, puis `git push -u origin main`.
+2. **Settings → Secrets and variables → Actions → _Variables_** : ajouter
+   `VITE_SUPABASE_URL` et `VITE_SUPABASE_ANON_KEY` (lues au build par la workflow — rien
+   de tout ça n'est committé).
+3. **Settings → Pages → Source : GitHub Actions**.
+
+Site publié sur `https://<pseudo>.github.io/balance/`.
+
+> Le chemin de base est fixé à `/balance/` dans [`vite.config.ts`](vite.config.ts) (= nom du
+> repo). Si le repo porte un autre nom, adapter cette valeur, sinon les assets renvoient 404.
 
 ## Base de données
 
-Les migrations et le seed sont versionnés dans `supabase/` :
+Les migrations et le seed sont versionnés dans `supabase/`. Sur un **nouveau projet**,
+exécute-les dans l'ordre depuis le SQL Editor :
 
 - `supabase/migrations/0001_balance_init.sql` — tables, index, politiques RLS, fonction d'agrégats.
-- `supabase/seed.sql` — les 8 concurrents de démo et leurs pesées.
+- `supabase/migrations/0002_balance_grants.sql` — privilèges de table pour le rôle `authenticated`
+  (nécessaire quand Supabase n'auto-accorde pas les privilèges sur les nouvelles tables).
+- `supabase/seed.sql` — les 8 concurrents de démo et leurs pesées *(optionnel)*.
 
 ### Modèle
 

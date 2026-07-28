@@ -5,13 +5,14 @@ import type { Member } from '../types';
 
 interface Props {
   me: Member;
-  screen: 'dash' | 'me';
+  screen: 'dash' | 'me' | 'settings';
   onDash: () => void;
   onMe: () => void;
   onNewWeighIn: () => void;
+  onSettings: () => void;
 }
 
-export default function Header({ me, screen, onDash, onMe, onNewWeighIn }: Props) {
+export default function Header({ me, screen, onDash, onMe, onNewWeighIn, onSettings }: Props) {
   const { signOut } = useAuth();
 
   const tab = (on: boolean): React.CSSProperties => ({
@@ -94,6 +95,26 @@ export default function Header({ me, screen, onDash, onMe, onNewWeighIn }: Props
         </div>
         <span style={{ fontSize: 13.5, fontWeight: 500 }}>{me.name}</span>
       </div>
+
+      <button
+        onClick={onSettings}
+        title="Réglages"
+        aria-label="Réglages"
+        style={{
+          width: 38,
+          height: 38,
+          display: 'grid',
+          placeItems: 'center',
+          background: screen === 'settings' ? 'rgba(200,255,61,.14)' : 'transparent',
+          border: `1px solid ${screen === 'settings' ? 'rgba(200,255,61,.5)' : 'rgba(242,240,230,.14)'}`,
+          borderRadius: 999,
+          color: screen === 'settings' ? LIME : 'rgba(242,240,230,.6)',
+          fontSize: 16,
+          cursor: 'pointer',
+        }}
+      >
+        ⚙
+      </button>
 
       <button
         onClick={() => signOut()}

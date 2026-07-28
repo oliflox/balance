@@ -8,6 +8,7 @@ import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import MonSuivi from './components/MonSuivi';
 import WeighInModal from './components/WeighInModal';
+import Settings from './components/Settings';
 import Toast from './components/Toast';
 import Spinner from './components/Spinner';
 
@@ -49,7 +50,7 @@ export default function App() {
 
 function AuthedApp() {
   const { loading, error, me } = useData();
-  const [screen, setScreen] = useState<'dash' | 'me'>('dash');
+  const [screen, setScreen] = useState<'dash' | 'me' | 'settings'>('dash');
   const [focusId, setFocusId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [toast, setToast] = useState('');
@@ -99,13 +100,12 @@ function AuthedApp() {
         onDash={() => setScreen('dash')}
         onMe={goMe}
         onNewWeighIn={() => setModalOpen(true)}
+        onSettings={() => setScreen('settings')}
       />
 
-      {screen === 'dash' ? (
-        <Dashboard onOpenPerson={openPerson} onNewWeighIn={() => setModalOpen(true)} />
-      ) : (
-        <MonSuivi focusId={focusId ?? me.id} onNewWeighIn={() => setModalOpen(true)} />
-      )}
+      {screen === 'dash' && <Dashboard onOpenPerson={openPerson} onNewWeighIn={() => setModalOpen(true)} />}
+      {screen === 'me' && <MonSuivi focusId={focusId ?? me.id} onNewWeighIn={() => setModalOpen(true)} />}
+      {screen === 'settings' && <Settings onToast={showToast} />}
 
       {modalOpen && (
         <WeighInModal

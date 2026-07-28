@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { addWeighIn, createProfile, fetchAll, toggleReaction } from '../lib/data';
-import type { NewProfile, NewWeighIn } from '../lib/data';
+import { addWeighIn, createProfile, fetchAll, toggleReaction, updateProfile } from '../lib/data';
+import type { NewProfile, NewWeighIn, ProfileUpdate } from '../lib/data';
 import { hasEntries, last } from '../lib/compute';
 import type { Member, ReactionIndex } from '../types';
 
@@ -16,6 +16,7 @@ interface DataValue {
   groupMaxWeek: number;
   refresh: () => Promise<void>;
   createMyProfile: (p: NewProfile) => Promise<void>;
+  updateMyProfile: (fields: ProfileUpdate) => Promise<void>;
   saveWeighIn: (w: NewWeighIn) => Promise<void>;
   react: (entryId: string, emoji: string, mine: boolean) => Promise<void>;
 }
@@ -70,6 +71,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
       async createMyProfile(p) {
         if (!user) throw new Error('Non connecté');
         await createProfile(user.id, p);
+        await refresh();
+      },
+      async updateMyProfile(fields) {
+        if (!me) throw new Error('Profil manquant');
+        await updateProfile(me.id, fields);
         await refresh();
       },
       async saveWeighIn(w) {

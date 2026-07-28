@@ -123,6 +123,24 @@ export async function createProfile(userId: string, p: NewProfile): Promise<void
   if (error) throw error;
 }
 
+export interface ProfileUpdate {
+  name?: string;
+  color?: string;
+  start?: number;
+  target?: number;
+}
+
+export async function updateProfile(profileId: string, fields: ProfileUpdate): Promise<void> {
+  const payload: Record<string, unknown> = {};
+  if (fields.name !== undefined) payload.name = fields.name;
+  if (fields.color !== undefined) payload.color = fields.color;
+  if (fields.start !== undefined) payload.start_weight = fields.start;
+  if (fields.target !== undefined) payload.target = fields.target;
+  if (Object.keys(payload).length === 0) return;
+  const { error } = await supabase.from('balance_profiles').update(payload).eq('id', profileId);
+  if (error) throw error;
+}
+
 export interface NewWeighIn {
   week: number;
   weight: number;

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
-import { dashboard, gridLines } from '../lib/compute';
+import { dashboard, gridLines, hasEntries, initialsOf } from '../lib/compute';
 import { LIME, ORANGE, PANEL } from '../theme';
 
 interface Props {
@@ -16,7 +16,7 @@ const panel: React.CSSProperties = {
 };
 
 export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
-  const { activeMembers, me, reactions, react } = useData();
+  const { members, activeMembers, me, reactions, react } = useData();
   const [metric, setMetric] = useState<'pct' | 'kg'>('pct');
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
 
@@ -26,6 +26,10 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
   );
   const grid = gridLines();
   const meNoEntries = me && me.entries.length === 0;
+  const pendingOthers = useMemo(
+    () => members.filter((m) => !hasEntries(m) && m.id !== me?.id),
+    [members, me?.id]
+  );
 
   const tab = (on: boolean): React.CSSProperties => ({
     padding: '9px 16px',
@@ -39,9 +43,32 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
     color: on ? '#0E100C' : 'rgba(242,240,230,.55)',
   });
 
+  const pendingList = pendingOthers.length > 0 && (
+    <div style={{ ...panel, marginBottom: 20 }}>
+      <div style={{ fontSize: 12, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(242,240,230,.5)' }}>
+        En attente de leur première pesée
+      </div>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 12 }}>
+        {pendingOthers.map((m) => (
+          <div
+            key={m.id}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 13px 7px 7px', borderRadius: 999, background: 'rgba(242,240,230,.06)', border: '1px solid rgba(242,240,230,.12)' }}
+          >
+            <span style={{ width: 26, height: 26, borderRadius: '50%', background: m.color, color: '#0E100C', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: 11.5, flex: 'none' }}>
+              {initialsOf(m.name)}
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 500 }}>{m.name}</span>
+            <span style={{ fontSize: 11.5, color: 'rgba(242,240,230,.4)' }}>a rejoint, pas encore pesé</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
   if (activeMembers.length === 0) {
     return (
       <main style={mainStyle}>
+        {pendingList}
         <div style={{ ...panel, textAlign: 'center', padding: 48 }}>
           <h1 style={{ fontFamily: 'Anton, sans-serif', textTransform: 'uppercase', fontSize: 32 }}>La ligue attend son premier héros</h1>
           <p style={{ color: 'rgba(242,240,230,.5)' }}>Personne ne s'est encore pesé. Ouvre le bal.</p>
@@ -53,6 +80,7 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
 
   return (
     <main style={mainStyle}>
+      {pendingList}
       {meNoEntries && (
         <div style={{ ...panel, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14, marginBottom: 20, borderColor: 'rgba(200,255,61,.24)', background: 'linear-gradient(160deg, rgba(200,255,61,.10), rgba(25,28,20,.9))' }}>
           <div>

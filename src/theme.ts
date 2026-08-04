@@ -37,6 +37,6 @@ export const COLOR_CHOICES = [
   '#A78BFA', '#FFD23F', '#5AA9FF', '#FF4D4D',
 ];
 
-// Challenge week 0 = Monday 27 Apr 2026. Weeks are Mondays.
-export const BASE_DATE = Date.UTC(2026, 3, 27);
+// Challenge week 0 = Wed 29 Jul 2026 (the group's actual start date).
+export const BASE_DATE = Date.UTC(2026, 6, 29);
 export const WEEK_MS = 604800000;

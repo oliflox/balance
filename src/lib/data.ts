@@ -1,5 +1,4 @@
 import { supabase } from '../supabaseClient';
-import { BASE_DATE, WEEK_MS } from '../theme';
 import type { FieldKey } from '../theme';
 import type { Entry, Member, ReactionIndex } from '../types';
 
@@ -20,6 +19,7 @@ interface EntryRow {
   id: string;
   profile_id: string;
   week: number;
+  date: string;
   weight: number | string;
   taille: number | string | null;
   hanches: number | string | null;
@@ -38,9 +38,6 @@ interface ReactionRow {
 
 const num = (v: number | string | null | undefined): number | null =>
   v == null || v === '' ? null : Number(v);
-
-export const isoDateForWeek = (week: number) =>
-  new Date(BASE_DATE + week * WEEK_MS).toISOString().slice(0, 10);
 
 export interface FetchResult {
   members: Member[];
@@ -67,7 +64,7 @@ export async function fetchAll(userId: string | null): Promise<FetchResult> {
       id: row.id,
       profileId: row.profile_id,
       week: row.week,
-      date: BASE_DATE + row.week * WEEK_MS,
+      date: new Date(row.date).getTime(),
       weight: Number(row.weight),
       taille: num(row.taille),
       hanches: num(row.hanches),
@@ -152,7 +149,7 @@ export async function addWeighIn(profileId: string, w: NewWeighIn): Promise<void
   const { error } = await supabase.from('balance_entries').insert({
     profile_id: profileId,
     week: w.week,
-    date: isoDateForWeek(w.week),
+    date: new Date().toISOString().slice(0, 10),
     weight: w.weight,
     taille: w.measures.taille ?? null,
     hanches: w.measures.hanches ?? null,

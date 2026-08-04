@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { fmtDate, last, r1 } from '../lib/compute';
-import { BASE_DATE, FIELDS, LIME, ORANGE, WEEK_MS } from '../theme';
+import { FIELDS, LIME, ORANGE } from '../theme';
 import type { FieldKey } from '../theme';
 import type { WeighInForm } from '../types';
 
@@ -44,7 +44,7 @@ export default function WeighInModal({ onClose, onSaved }: Props) {
   const diff = isNaN(fw) ? null : r1(fw - prevWeight);
   const { diffText, diffColor } = useMemo(() => diffInfo(diff), [diff]);
 
-  const nextDateLong = fmtDate(BASE_DATE + nextWeek * WEEK_MS, true);
+  const nextDateLong = fmtDate(Date.now(), true);
 
   const save = async () => {
     const w = parseFloat(form.weight);

@@ -4,7 +4,7 @@ export interface Entry {
   id: string;
   profileId: string;
   week: number;
-  date: number; // ms timestamp, derived from the challenge week
+  date: number; // ms timestamp, the real day the weigh-in was submitted
   weight: number;
   taille: number | null;
   hanches: number | null;

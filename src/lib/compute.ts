@@ -36,9 +36,14 @@ export interface Series {
   ly: number;
 }
 
+// Monday of the week containing BASE_DATE — the group weighs in on Mondays,
+// so calendar weeks are bucketed Mon-Sun rather than from BASE_DATE itself.
+const WEEK_ANCHOR = BASE_DATE - ((new Date(BASE_DATE).getUTCDay() + 6) % 7) * 86400000;
+const calWeek = (date: number) => Math.floor((date - WEEK_ANCHOR) / WEEK_MS);
+
 export function groupChart(members: Member[], metric: 'pct' | 'kg', hidden: Record<string, boolean>, meId: string) {
   const W = 900, H = 330, PAD = 14;
-  const maxWeek = members.length ? Math.max(...members.map((m) => last(m).week)) : 0;
+  const maxWeek = members.length ? Math.max(...members.map((m) => calWeek(last(m).date))) : 0;
   let lo: number, hi: number;
   if (metric === 'pct') {
     lo = -2;
@@ -48,11 +53,11 @@ export function groupChart(members: Member[], metric: 'pct' | 'kg', hidden: Reco
     lo = Math.floor(Math.min(...all) - 3);
     hi = Math.ceil(Math.max(...all) + 3);
   }
-  const x = (w: number) => (w / Math.max(1, maxWeek)) * (W - 8) + 4;
+  const x = (wk: number) => (wk / Math.max(1, maxWeek)) * (W - 8) + 4;
   const y = (v: number) => H - PAD - ((v - lo) / (hi - lo)) * (H - PAD * 2);
 
   const series: Series[] = members.map((m) => {
-    const pts = m.entries.map((e) => [x(e.week), y(metric === 'pct' ? ((m.start - e.weight) / m.start) * 100 : e.weight)]);
+    const pts = m.entries.map((e) => [x(calWeek(e.date)), y(metric === 'pct' ? ((m.start - e.weight) / m.start) * 100 : e.weight)]);
     const off = !!hidden[m.id];
     const lp = pts[pts.length - 1];
     return { id: m.id, color: m.color, d: path(pts), w: m.id === meId ? 3.5 : 2, op: off ? 0.06 : 1, lx: lp[0], ly: lp[1] };
@@ -63,10 +68,11 @@ export function groupChart(members: Member[], metric: 'pct' | 'kg', hidden: Reco
     const v = hi - ((hi - lo) * i) / 4;
     yLabels.push(metric === 'pct' ? r1(v) + '%' : Math.round(v) + ' kg');
   }
+
   const xLabels: string[] = [];
   for (let i = 0; i <= 4; i++) {
     const wk = Math.round((maxWeek * i) / 4);
-    xLabels.push(fmtDate(BASE_DATE + wk * WEEK_MS));
+    xLabels.push('Semaine ' + (wk + 1));
   }
   return { series, yLabels, xLabels, maxWeek };
 }

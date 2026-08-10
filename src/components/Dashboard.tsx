@@ -114,7 +114,9 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
                 <path key={s.id} d={s.d} fill="none" stroke={s.color} strokeWidth={s.w} strokeLinecap="round" strokeLinejoin="round" opacity={s.op} vectorEffect="non-scaling-stroke" style={{ transition: 'opacity .25s ease' }} />
               ))}
               {vm.chart.series.map((s) => (
-                <circle key={s.id + '-d'} cx={s.lx} cy={s.ly} r={4} fill={s.color} opacity={s.op} vectorEffect="non-scaling-stroke" />
+                <circle key={s.id + '-d'} cx={s.lx} cy={s.ly} r={4} fill={s.color} opacity={s.op} vectorEffect="non-scaling-stroke" style={{ cursor: 'pointer' }}>
+                  <title>{s.name} — {s.weight} kg</title>
+                </circle>
               ))}
             </svg>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(242,240,230,.35)' }}>

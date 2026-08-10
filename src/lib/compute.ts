@@ -28,6 +28,8 @@ export const path = (pts: number[][]) =>
 
 export interface Series {
   id: string;
+  name: string;
+  weight: number;
   color: string;
   d: string;
   w: number;
@@ -60,7 +62,7 @@ export function groupChart(members: Member[], metric: 'pct' | 'kg', hidden: Reco
     const pts = m.entries.map((e) => [x(calWeek(e.date)), y(metric === 'pct' ? ((m.start - e.weight) / m.start) * 100 : e.weight)]);
     const off = !!hidden[m.id];
     const lp = pts[pts.length - 1];
-    return { id: m.id, color: m.color, d: path(pts), w: m.id === meId ? 3.5 : 2, op: off ? 0.06 : 1, lx: lp[0], ly: lp[1] };
+    return { id: m.id, name: m.name, weight: last(m).weight, color: m.color, d: path(pts), w: m.id === meId ? 3.5 : 2, op: off ? 0.06 : 1, lx: lp[0], ly: lp[1] };
   });
 
   const yLabels: string[] = [];

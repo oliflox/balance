@@ -5,6 +5,8 @@ a { color: #C8FF3D; text-decoration: none; }
 a:hover { color: #FF7A2F; }
 input, button, select { font-family: inherit; }
 input::placeholder { color: rgba(242, 240, 230, .32); }
+.auth-input { border-color: rgba(242, 240, 230, .14); }
+.auth-input:focus { border-color: #C8FF3D; }
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 input[type="number"] { -moz-appearance: textfield; }

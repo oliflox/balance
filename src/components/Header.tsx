@@ -1,6 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 import { initialsOf } from '../lib/compute';
-import { LIME } from '../theme';
+import { LIME, tabStyle } from '../theme';
 import type { Member } from '../types';
 
 interface Props {
@@ -14,18 +14,6 @@ interface Props {
 
 export default function Header({ me, screen, onDash, onMe, onNewWeighIn, onSettings }: Props) {
   const { signOut } = useAuth();
-
-  const tab = (on: boolean): React.CSSProperties => ({
-    padding: '9px 16px',
-    border: 'none',
-    borderRadius: 999,
-    fontSize: 13.5,
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'all .2s ease',
-    background: on ? LIME : 'transparent',
-    color: on ? '#0E100C' : 'rgba(242,240,230,.55)',
-  });
 
   return (
     <header
@@ -50,8 +38,8 @@ export default function Header({ me, screen, onDash, onMe, onNewWeighIn, onSetti
       </div>
 
       <nav style={{ display: 'flex', gap: 4, padding: 4, background: '#191C14', border: '1px solid rgba(242,240,230,.10)', borderRadius: 999 }}>
-        <button onClick={onDash} style={tab(screen === 'dash')}>Le groupe</button>
-        <button onClick={onMe} style={tab(screen === 'me')}>Mon suivi</button>
+        <button onClick={onDash} style={tabStyle(screen === 'dash')}>Le groupe</button>
+        <button onClick={onMe} style={tabStyle(screen === 'me')}>Mon suivi</button>
       </nav>
 
       <div style={{ flex: 1, minWidth: 8 }} />

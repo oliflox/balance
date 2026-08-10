@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { COLOR_CHOICES, INK, LIME, ORANGE, PANEL } from '../theme';
+import { r1 } from '../lib/compute';
+import { COLOR_CHOICES, LIME, ORANGE, PANEL } from '../theme';
+import { Field, UnitInput, textInput } from './FormControls';
 
 interface Props {
   onToast: (message: string) => void;
@@ -13,8 +15,6 @@ const panel: React.CSSProperties = {
   borderRadius: 22,
   padding: 'clamp(18px, 2vw, 26px)',
 };
-
-const round1 = (n: number) => Math.round(n * 10) / 10;
 
 export default function Settings({ onToast }: Props) {
   const { me, updateMyProfile } = useData();
@@ -76,7 +76,7 @@ function ProfileCard({
     if (t >= s) return setErr("L'objectif doit être inférieur au poids de départ.");
     setBusy(true);
     try {
-      await onSave({ name: name.trim(), color, start: round1(s), target: round1(t) });
+      await onSave({ name: name.trim(), color, start: r1(s), target: r1(t) });
       onToast('Profil mis à jour.');
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Erreur');
@@ -212,30 +212,6 @@ function Card({ title, subtitle, children }: { title: string; subtitle: string; 
   );
 }
 
-function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
-  return (
-    <div style={style}>
-      <label style={{ display: 'block', fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(242,240,230,.5)', marginBottom: 8 }}>{label}</label>
-      {children}
-    </div>
-  );
-}
-
-function UnitInput({ value, onChange, unit }: { value: string; onChange: (v: string) => void; unit: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', background: '#0E100C', border: '1px solid rgba(242,240,230,.12)', borderRadius: 12, padding: '0 12px' }}>
-      <input
-        type="number"
-        step="0.1"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{ flex: 1, minWidth: 0, padding: '13px 0', background: 'transparent', border: 'none', color: INK, fontSize: 16, outline: 'none', fontVariantNumeric: 'tabular-nums' }}
-      />
-      <span style={{ fontSize: 12, color: 'rgba(242,240,230,.4)' }}>{unit}</span>
-    </div>
-  );
-}
-
 function ErrorBanner({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ marginTop: 16, padding: '11px 14px', background: 'rgba(255,77,77,.12)', border: '1px solid rgba(255,77,77,.35)', borderRadius: 10, color: '#FF8080', fontSize: 13 }}>
@@ -267,17 +243,6 @@ function SaveButton({ busy, onClick, children }: { busy: boolean; onClick: () =>
     </button>
   );
 }
-
-const textInput: React.CSSProperties = {
-  width: '100%',
-  padding: '13px 14px',
-  background: '#0E100C',
-  border: '1px solid rgba(242,240,230,.12)',
-  borderRadius: 12,
-  color: INK,
-  fontSize: 15,
-  outline: 'none',
-};
 
 const ghostBtn: React.CSSProperties = {
   padding: '11px 18px',

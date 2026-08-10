@@ -8,7 +8,8 @@ const inputBase: React.CSSProperties = {
   width: '100%',
   padding: '15px 16px',
   background: '#191C14',
-  border: '1px solid rgba(242,240,230,.14)',
+  borderWidth: 1,
+  borderStyle: 'solid',
   borderRadius: 12,
   color: '#F2F0E6',
   fontSize: 15,
@@ -17,21 +18,7 @@ const inputBase: React.CSSProperties = {
 };
 
 function AuthInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  const [focus, setFocus] = useState(false);
-  return (
-    <input
-      {...props}
-      onFocus={(e) => {
-        setFocus(true);
-        props.onFocus?.(e);
-      }}
-      onBlur={(e) => {
-        setFocus(false);
-        props.onBlur?.(e);
-      }}
-      style={{ ...inputBase, borderColor: focus ? LIME : 'rgba(242,240,230,.14)' }}
-    />
-  );
+  return <input {...props} className="auth-input" style={inputBase} />;
 }
 
 export default function Login() {

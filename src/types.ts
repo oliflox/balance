@@ -23,7 +23,6 @@ export interface Member {
   target: number;
   roast: string;
   trophy: [string, string]; // [icon, title]
-  isDemo: boolean;
   isMe: boolean;
   entries: Entry[]; // sorted ascending by week
 }

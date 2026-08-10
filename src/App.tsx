@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useAuth } from './context/AuthContext';
 import { DataProvider, useData } from './context/DataContext';
 import { INK } from './theme';
@@ -54,6 +54,7 @@ function AuthedApp() {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [toast, setToast] = useState('');
+  const toastTimer = useRef<number | undefined>(undefined);
 
   if (loading) {
     return (
@@ -88,8 +89,8 @@ function AuthedApp() {
 
   const showToast = (msg: string) => {
     setToast(msg);
-    window.clearTimeout((showToast as unknown as { _t?: number })._t);
-    (showToast as unknown as { _t?: number })._t = window.setTimeout(() => setToast(''), 3400);
+    window.clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(''), 3400);
   };
 
   return (

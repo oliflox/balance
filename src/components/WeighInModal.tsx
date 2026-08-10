@@ -52,7 +52,7 @@ export default function WeighInModal({ onClose, onSaved }: Props) {
     setBusy(true);
     const measures: Partial<Record<FieldKey, number | null>> = {};
     for (const f of FIELDS) {
-      const v = parseFloat(form[f.name] ?? '');
+      const v = parseFloat(form[f.key] ?? '');
       measures[f.key] = isNaN(v) ? (prevEntry ? prevEntry[f.key] : null) : r1(v);
     }
     try {
@@ -139,14 +139,14 @@ export default function WeighInModal({ onClose, onSaved }: Props) {
         {/* Measurements */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginTop: 16 }}>
           {FIELDS.map((f) => (
-            <div key={f.name}>
+            <div key={f.key}>
               <label style={{ display: 'block', fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(242,240,230,.5)', marginBottom: 7 }}>{f.label}</label>
               <div style={{ display: 'flex', alignItems: 'center', background: '#0E100C', border: '1px solid rgba(242,240,230,.12)', borderRadius: 12, padding: '0 12px' }}>
                 <input
                   type="number"
                   step="0.1"
-                  value={form[f.name] ?? ''}
-                  onChange={(e) => setField(f.name, e.target.value)}
+                  value={form[f.key] ?? ''}
+                  onChange={(e) => setField(f.key, e.target.value)}
                   style={{ flex: 1, minWidth: 0, padding: '13px 0', background: 'transparent', border: 'none', color: '#F2F0E6', fontSize: 16, outline: 'none', fontVariantNumeric: 'tabular-nums' }}
                 />
                 <span style={{ fontSize: 12, color: 'rgba(242,240,230,.4)' }}>{f.unit}</span>

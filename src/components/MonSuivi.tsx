@@ -1,19 +1,12 @@
 import { useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { gridLines, hasEntries, initialsOf, personVals } from '../lib/compute';
-import { LIME, ORANGE, PANEL } from '../theme';
+import { LIME, ORANGE, PANEL, mainStyle, panel, sectionTitle } from '../theme';
 
 interface Props {
   focusId: string;
   onNewWeighIn: () => void;
 }
-
-const panel: React.CSSProperties = {
-  background: PANEL,
-  border: '1px solid rgba(242,240,230,.10)',
-  borderRadius: 22,
-  padding: 'clamp(18px, 2vw, 26px)',
-};
 
 const TABLE_HEAD = ['Date', 'Poids', 'Δ', 'Taille', 'Hanches', 'Bras', 'Cuisse', 'Poitrine', '% MG'];
 
@@ -195,19 +188,6 @@ export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
     </main>
   );
 }
-
-const mainStyle: React.CSSProperties = {
-  padding: 'clamp(20px, 3vw, 36px) clamp(16px, 3.5vw, 40px) 80px',
-  maxWidth: 1560,
-  margin: '0 auto',
-};
-
-const sectionTitle: React.CSSProperties = {
-  fontFamily: 'Anton, sans-serif',
-  fontSize: 26,
-  margin: 0,
-  textTransform: 'uppercase',
-};
 
 const td: React.CSSProperties = { padding: '13px 12px 13px 0', fontSize: 13.5 };
 

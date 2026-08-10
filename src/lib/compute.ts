@@ -1,5 +1,5 @@
 // Pure view-model builders ported faithfully from the original Balance mockup logic.
-import { ACCENT, BASE_DATE, FIELDS, INK, LIME, ORANGE, SHOW_ROASTS, WEEK_MS } from '../theme';
+import { ACCENT, BASE_DATE, FIELDS, INK, LIME, ORANGE, WEEK_MS } from '../theme';
 import type { Member, ReactionIndex } from '../types';
 
 export const r1 = (n: number) => Math.round(n * 10) / 10;
@@ -242,7 +242,7 @@ export function dashboard(members: Member[], meId: string, metric: 'pct' | 'kg',
       delta: (d > 0 ? '+' : '') + d + ' kg',
       deltaColor: d <= 0 ? 'rgba(242,240,230,.5)' : ORANGE,
       badge: i === 0 ? 'Leader' : m.entries.length === maxWeek + 1 ? 'Assidu' : '',
-      roast: SHOW_ROASTS ? m.roast : last(m).note || m.entries.length + ' pesées enregistrées',
+      roast: m.roast,
       barWidth: Math.max(3, (pct / maxPct) * 100),
       isMe: m.id === meId,
     };

@@ -1,19 +1,12 @@
 import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { dashboard, gridLines, hasEntries, initialsOf } from '../lib/compute';
-import { LIME, ORANGE, PANEL } from '../theme';
+import { LIME, ORANGE, PANEL, mainStyle, panel, sectionTitle, tabStyle } from '../theme';
 
 interface Props {
   onOpenPerson: (id: string) => void;
   onNewWeighIn: () => void;
 }
-
-const panel: React.CSSProperties = {
-  background: PANEL,
-  border: '1px solid rgba(242,240,230,.10)',
-  borderRadius: 22,
-  padding: 'clamp(18px, 2vw, 26px)',
-};
 
 export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
   const { members, activeMembers, me, reactions, react } = useData();
@@ -30,18 +23,6 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
     () => members.filter((m) => !hasEntries(m) && m.id !== me?.id),
     [members, me?.id]
   );
-
-  const tab = (on: boolean): React.CSSProperties => ({
-    padding: '9px 16px',
-    border: 'none',
-    borderRadius: 999,
-    fontSize: 13.5,
-    fontWeight: 600,
-    cursor: 'pointer',
-    transition: 'all .2s ease',
-    background: on ? LIME : 'transparent',
-    color: on ? '#0E100C' : 'rgba(242,240,230,.55)',
-  });
 
   const pendingList = pendingOthers.length > 0 && (
     <div style={{ ...panel, marginBottom: 20 }}>
@@ -119,8 +100,8 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
               <p style={{ margin: '6px 0 0', fontSize: 13, color: 'rgba(242,240,230,.5)' }}>{vm.chartHint}</p>
             </div>
             <div style={{ display: 'flex', gap: 4, padding: 4, background: '#0E100C', border: '1px solid rgba(242,240,230,.10)', borderRadius: 999 }}>
-              <button onClick={() => setMetric('pct')} style={tab(metric === 'pct')}>% perdu</button>
-              <button onClick={() => setMetric('kg')} style={tab(metric === 'kg')}>Poids (kg)</button>
+              <button onClick={() => setMetric('pct')} style={tabStyle(metric === 'pct')}>% perdu</button>
+              <button onClick={() => setMetric('kg')} style={tabStyle(metric === 'kg')}>Poids (kg)</button>
             </div>
           </div>
 
@@ -290,19 +271,6 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
     </main>
   );
 }
-
-const mainStyle: React.CSSProperties = {
-  padding: 'clamp(20px, 3vw, 36px) clamp(16px, 3.5vw, 40px) 80px',
-  maxWidth: 1560,
-  margin: '0 auto',
-};
-
-const sectionTitle: React.CSSProperties = {
-  fontFamily: 'Anton, sans-serif',
-  fontSize: 26,
-  margin: 0,
-  textTransform: 'uppercase',
-};
 
 const ctaBtn: React.CSSProperties = {
   marginTop: 16,

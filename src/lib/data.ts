@@ -12,7 +12,6 @@ interface ProfileRow {
   roast: string | null;
   trophy_icon: string | null;
   trophy_title: string | null;
-  is_demo: boolean;
 }
 
 interface EntryRow {
@@ -85,7 +84,6 @@ export async function fetchAll(userId: string | null): Promise<FetchResult> {
     target: Number(p.target),
     roast: p.roast ?? '',
     trophy: [p.trophy_icon ?? '', p.trophy_title ?? ''],
-    isDemo: p.is_demo,
     isMe: !!userId && p.user_id === userId,
     entries: (byProfile[p.id] ?? []).sort((a, b) => a.week - b.week),
   }));

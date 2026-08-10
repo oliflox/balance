@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import { r1 } from '../lib/compute';
 import { COLOR_CHOICES, LIME } from '../theme';
+import { Field, UnitInput, textInput } from './FormControls';
 
 export default function Onboarding() {
   const { user, signOut } = useAuth();
@@ -23,7 +25,7 @@ export default function Onboarding() {
     if (t >= s) return setErr("L'objectif doit être inférieur au poids de départ.");
     setBusy(true);
     try {
-      await createMyProfile({ name: name.trim(), color, start: round1(s), target: round1(t) });
+      await createMyProfile({ name: name.trim(), color, start: r1(s), target: r1(t) });
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Erreur');
       setBusy(false);
@@ -123,46 +125,6 @@ export default function Onboarding() {
     </div>
   );
 }
-
-const textInput: React.CSSProperties = {
-  width: '100%',
-  padding: '13px 14px',
-  background: '#0E100C',
-  border: '1px solid rgba(242,240,230,.12)',
-  borderRadius: 12,
-  color: '#F2F0E6',
-  fontSize: 15,
-  outline: 'none',
-};
-
-function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
-  return (
-    <div style={style}>
-      <label style={{ display: 'block', fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(242,240,230,.5)', marginBottom: 8 }}>
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
-
-function UnitInput({ value, onChange, unit, placeholder }: { value: string; onChange: (v: string) => void; unit: string; placeholder?: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', background: '#0E100C', border: '1px solid rgba(242,240,230,.12)', borderRadius: 12, padding: '0 12px' }}>
-      <input
-        type="number"
-        step="0.1"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        style={{ flex: 1, minWidth: 0, padding: '13px 0', background: 'transparent', border: 'none', color: '#F2F0E6', fontSize: 16, outline: 'none', fontVariantNumeric: 'tabular-nums' }}
-      />
-      <span style={{ fontSize: 12, color: 'rgba(242,240,230,.4)' }}>{unit}</span>
-    </div>
-  );
-}
-
-const round1 = (n: number) => Math.round(n * 10) / 10;
 
 function defaultName(email?: string | null): string {
   if (!email) return '';

@@ -49,6 +49,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setLoading(true);
     refresh();
+    const id = setInterval(refresh, 30000);
+    return () => clearInterval(id);
   }, [refresh]);
 
   const activeMembers = useMemo(() => members.filter(hasEntries), [members]);

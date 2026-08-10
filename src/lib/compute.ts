@@ -69,11 +69,10 @@ export function groupChart(members: Member[], metric: 'pct' | 'kg', hidden: Reco
     yLabels.push(metric === 'pct' ? r1(v) + '%' : Math.round(v) + ' kg');
   }
 
+  // One label per week: they naturally dedupe and pack closer together
+  // (space-between layout) as the contest runs for more weeks.
   const xLabels: string[] = [];
-  for (let i = 0; i <= 4; i++) {
-    const wk = Math.round((maxWeek * i) / 4);
-    xLabels.push('Semaine ' + (wk + 1));
-  }
+  for (let wk = 0; wk <= maxWeek; wk++) xLabels.push(String(wk + 1));
   return { series, yLabels, xLabels, maxWeek };
 }
 

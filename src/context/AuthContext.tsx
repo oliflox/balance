@@ -7,8 +7,10 @@ interface AuthValue {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  passwordRecovery: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
+  resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
   updateEmail: (email: string) => Promise<void>;
@@ -19,14 +21,16 @@ const AuthCtx = createContext<AuthValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [passwordRecovery, setPasswordRecovery] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
+      if (event === 'PASSWORD_RECOVERY') setPasswordRecovery(true);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -36,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       user: session?.user ?? null,
       loading,
+      passwordRecovery,
       async signIn(email, password) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -45,6 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
         // If email confirmation is enabled, there is no active session yet.
         return { needsConfirmation: !data.session };
+      },
+      async resetPassword(email) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email);
+        if (error) throw error;
       },
       async signOut() {
         await supabase.auth.signOut();
@@ -58,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (error) throw error;
       },
     }),
-    [session, loading]
+    [session, loading, passwordRecovery]
   );
 
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;

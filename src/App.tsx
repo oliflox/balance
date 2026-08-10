@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useAuth } from './context/AuthContext';
 import { DataProvider, useData } from './context/DataContext';
 import { INK } from './theme';
@@ -49,12 +49,17 @@ export default function App() {
 }
 
 function AuthedApp() {
+  const { passwordRecovery } = useAuth();
   const { loading, error, me } = useData();
   const [screen, setScreen] = useState<'dash' | 'me' | 'settings'>('dash');
   const [focusId, setFocusId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [toast, setToast] = useState('');
   const toastTimer = useRef<number | undefined>(undefined);
+
+  useEffect(() => {
+    if (passwordRecovery) setScreen('settings');
+  }, [passwordRecovery]);
 
   if (loading) {
     return (

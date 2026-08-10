@@ -22,11 +22,13 @@ function AuthInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
 }
 
 export default function Login() {
-  const { signIn } = useAuth();
+  const { signIn, resetPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [pwd, setPwd] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
+  const [resetBusy, setResetBusy] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const [stats, setStats] = useState<PublicStats>({ totalLost: 0, memberCount: 0, weekNo: 0 });
 
   useEffect(() => {
@@ -44,6 +46,21 @@ export default function Login() {
       setErr(translateAuthError(e));
     } finally {
       setBusy(false);
+    }
+  };
+
+  const forgotPassword = async () => {
+    setErr('');
+    setResetSent(false);
+    if (!/.+@.+\..+/.test(email)) return setErr("Entre ton email ci-dessus pour recevoir le lien.");
+    setResetBusy(true);
+    try {
+      await resetPassword(email);
+      setResetSent(true);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : 'Erreur');
+    } finally {
+      setResetBusy(false);
     }
   };
 
@@ -130,9 +147,21 @@ export default function Login() {
             autoComplete="current-password"
           />
 
+          <div style={{ textAlign: 'right', marginTop: 10 }}>
+            <button type="button" onClick={forgotPassword} disabled={resetBusy} style={forgotLinkStyle}>
+              {resetBusy ? 'Envoi…' : 'Mot de passe oublié ?'}
+            </button>
+          </div>
+
           {err && (
             <div style={{ marginTop: 14, padding: '11px 14px', background: 'rgba(255,77,77,.12)', border: '1px solid rgba(255,77,77,.35)', borderRadius: 10, color: '#FF8080', fontSize: 13 }}>
               {err}
+            </div>
+          )}
+
+          {resetSent && (
+            <div style={{ marginTop: 14, padding: '11px 14px', background: 'rgba(200,255,61,.08)', border: '1px solid rgba(200,255,61,.3)', borderRadius: 10, color: LIME, fontSize: 13 }}>
+              Lien envoyé — vérifie ta boîte mail.
             </div>
           )}
 
@@ -170,6 +199,16 @@ export default function Login() {
     </div>
   );
 }
+
+const forgotLinkStyle: React.CSSProperties = {
+  background: 'none',
+  border: 'none',
+  padding: 0,
+  color: 'rgba(242,240,230,.5)',
+  fontSize: 13,
+  textDecoration: 'underline',
+  cursor: 'pointer',
+};
 
 const labelStyle: React.CSSProperties = {
   display: 'block',

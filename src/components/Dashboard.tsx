@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { dashboard, gridLines, hasEntries, initialsOf } from '../lib/compute';
-import { LIME, ORANGE, PANEL, mainStyle, panel, sectionTitle, tabStyle } from '../theme';
+import { LIME, ORANGE, PANEL, chartTooltipStyle, mainStyle, panel, sectionTitle, tabStyle } from '../theme';
 
 interface Props {
   onOpenPerson: (id: string) => void;
@@ -12,6 +12,7 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
   const { members, activeMembers, me, reactions, react } = useData();
   const [metric, setMetric] = useState<'pct' | 'kg'>('pct');
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
+  const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
 
   const vm = useMemo(
     () => dashboard(activeMembers, me?.id ?? '', metric, hidden, reactions),
@@ -114,11 +115,21 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
                 <path key={s.id} d={s.d} fill="none" stroke={s.color} strokeWidth={s.w} strokeLinecap="round" strokeLinejoin="round" opacity={s.op} vectorEffect="non-scaling-stroke" style={{ transition: 'opacity .25s ease' }} />
               ))}
               {vm.chart.series.map((s) => (
-                <circle key={s.id + '-d'} cx={s.lx} cy={s.ly} r={4} fill={s.color} opacity={s.op} vectorEffect="non-scaling-stroke" style={{ cursor: 'pointer' }}>
-                  <title>{s.name} — {s.weight} kg</title>
-                </circle>
+                <circle
+                  key={s.id + '-d'}
+                  cx={s.lx}
+                  cy={s.ly}
+                  r={4}
+                  fill={s.color}
+                  opacity={s.op}
+                  vectorEffect="non-scaling-stroke"
+                  style={{ cursor: 'pointer' }}
+                  onMouseEnter={() => setTip({ x: (s.lx / 900) * 100, y: (s.ly / 330) * 100, text: `${s.name} — ${s.weight} kg` })}
+                  onMouseLeave={() => setTip(null)}
+                />
               ))}
             </svg>
+            {tip && <div style={chartTooltipStyle(tip.x, tip.y)}>{tip.text}</div>}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(242,240,230,.35)' }}>
               {vm.chart.xLabels.map((l, i) => (
                 <span key={i}>{l}</span>

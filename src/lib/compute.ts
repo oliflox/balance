@@ -167,7 +167,7 @@ export function personVals(m: Member, meId: string) {
       ' L' + pts[pts.length - 1][0].toFixed(1) + ' ' + (H - PAD) +
       ' L' + pts[0][0].toFixed(1) + ' ' + (H - PAD) + ' Z',
     targetLine: 'M5 ' + y(m.target).toFixed(1) + ' L895 ' + y(m.target).toFixed(1),
-    dots: pts.map((p) => ({ x: p[0], y: p[1] })),
+    dots: pts.map((p, i) => ({ x: p[0], y: p[1], label: fmtDate(es[i].date) + ' — ' + es[i].weight + ' kg' })),
     progress,
     ring: ((C * progress) / 100).toFixed(1) + ' ' + C.toFixed(1),
     remaining:

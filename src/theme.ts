@@ -61,6 +61,26 @@ export const sectionTitle: CSSProperties = {
   textTransform: 'uppercase',
 };
 
+// Positioned bubble for chart-point hover tooltips (xPct/yPct = position in
+// the SVG's own 0-100% box, since viewBox width maps 1:1 to container width).
+export const chartTooltipStyle = (xPct: number, yPct: number): CSSProperties => ({
+  position: 'absolute',
+  left: `${xPct}%`,
+  top: `${yPct}%`,
+  transform: 'translate(-50%, -130%)',
+  padding: '6px 10px',
+  background: '#0E100C',
+  border: '1px solid rgba(200,255,61,.4)',
+  borderRadius: 10,
+  color: LIME,
+  fontSize: 12,
+  fontWeight: 600,
+  whiteSpace: 'nowrap',
+  pointerEvents: 'none',
+  boxShadow: '0 8px 20px rgba(0,0,0,.4)',
+  zIndex: 5,
+});
+
 export const tabStyle = (on: boolean): CSSProperties => ({
   padding: '9px 16px',
   border: 'none',

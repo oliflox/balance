@@ -1,7 +1,7 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { gridLines, hasEntries, initialsOf, personVals } from '../lib/compute';
-import { LIME, ORANGE, PANEL, mainStyle, panel, sectionTitle } from '../theme';
+import { LIME, ORANGE, PANEL, chartTooltipStyle, mainStyle, panel, sectionTitle } from '../theme';
 
 interface Props {
   focusId: string;
@@ -14,6 +14,7 @@ export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
   const { members, me } = useData();
   const member = useMemo(() => members.find((m) => m.id === focusId) ?? me, [members, focusId, me]);
   const grid = gridLines();
+  const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
 
   if (!member) return null;
 
@@ -68,23 +69,38 @@ export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
             <h2 style={sectionTitle}>Poids dans le temps</h2>
             <div style={{ fontSize: 13, color: 'rgba(242,240,230,.5)' }}>{p.range}</div>
           </div>
-          <svg viewBox="0 0 900 300" preserveAspectRatio="none" style={{ width: '100%', height: 'clamp(220px, 30vw, 300px)', display: 'block', marginTop: 18, overflow: 'visible' }}>
-            <defs>
-              <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={p.color} stopOpacity={0.28} />
-                <stop offset="100%" stopColor={p.color} stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            {grid.map((g, i) => (
-              <line key={i} x1={0} y1={g.y2} x2={900} y2={g.y2} stroke="rgba(242,240,230,.09)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-            ))}
-            <path d={p.area} fill={`url(#${gradId})`} />
-            <path d={p.targetLine} fill="none" stroke={ORANGE} strokeWidth={1.5} strokeDasharray="7 6" vectorEffect="non-scaling-stroke" />
-            <path d={p.line} fill="none" stroke={p.color} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-            {p.dots.map((d, i) => (
-              <circle key={i} cx={d.x} cy={d.y} r={3.5} fill="#0E100C" stroke={p.color} strokeWidth={2} vectorEffect="non-scaling-stroke" />
-            ))}
-          </svg>
+          <div style={{ position: 'relative', marginTop: 18 }}>
+            <svg viewBox="0 0 900 300" preserveAspectRatio="none" style={{ width: '100%', height: 'clamp(220px, 30vw, 300px)', display: 'block', overflow: 'visible' }}>
+              <defs>
+                <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={p.color} stopOpacity={0.28} />
+                  <stop offset="100%" stopColor={p.color} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              {grid.map((g, i) => (
+                <line key={i} x1={0} y1={g.y2} x2={900} y2={g.y2} stroke="rgba(242,240,230,.09)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+              ))}
+              <path d={p.area} fill={`url(#${gradId})`} />
+              <path d={p.targetLine} fill="none" stroke={ORANGE} strokeWidth={1.5} strokeDasharray="7 6" vectorEffect="non-scaling-stroke" />
+              <path d={p.line} fill="none" stroke={p.color} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+              {p.dots.map((d, i) => (
+                <circle
+                  key={i}
+                  cx={d.x}
+                  cy={d.y}
+                  r={3.5}
+                  fill="#0E100C"
+                  stroke={p.color}
+                  strokeWidth={2}
+                  vectorEffect="non-scaling-stroke"
+                  style={{ cursor: 'pointer' }}
+                  onMouseEnter={() => setTip({ x: (d.x / 900) * 100, y: (d.y / 300) * 100, text: d.label })}
+                  onMouseLeave={() => setTip(null)}
+                />
+              ))}
+            </svg>
+            {tip && <div style={chartTooltipStyle(tip.x, tip.y)}>{tip.text}</div>}
+          </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(242,240,230,.35)' }}>
             {xLabelsForPerson(p.range)}
           </div>

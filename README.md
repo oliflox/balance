@@ -11,8 +11,8 @@ Réécriture en **React + Vite + TypeScript** de la maquette `Balance.dc.html`, 
 
 - **Connexion** par email + mot de passe (Supabase Auth). Les inscriptions publiques sont
   désactivées : les comptes sont créés à la main par l'admin (voir plus bas).
-- **Onboarding** : à sa première connexion, un membre choisit son nom, sa couleur, son poids de départ et son objectif.
-- **Le groupe** (dashboard) : courbes de tout le monde (% perdu ou kg), classement, fil des dernières pesées avec réactions emoji, mur des trophées.
+- **Onboarding** : à sa première connexion, un membre choisit son nom, sa couleur, son poids de départ et son objectif. L'objectif peut être **au-dessus** du poids de départ : quelqu'un qui veut prendre du poids est classé et récompensé sur sa progression à lui, exactement comme les autres.
+- **Le groupe** (dashboard) : courbes de tout le monde (% de progression ou kg), classement, fil des dernières pesées avec réactions emoji, mur des trophées.
 - **Mon suivi** : courbe de poids vs objectif, anneau de progression, série de lundis, mensurations, historique complet.
 - **Nouvelle pesée** : poids + mensurations + petit mot pour le groupe.
 

@@ -48,7 +48,8 @@ export default function Onboarding() {
           Crée ton profil
         </h1>
         <p style={{ margin: '0 0 24px', fontSize: 13.5, color: 'rgba(242,240,230,.5)' }}>
-          Poids de départ, objectif, et une couleur. Ensuite, on se pèse.
+          Poids de départ, objectif, et une couleur. L'objectif peut être au-dessus
+          comme en dessous : perdre ou prendre, c'est le même championnat.
         </p>
 
         <Field label="Ton nom (ou surnom)">

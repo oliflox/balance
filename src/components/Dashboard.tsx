@@ -82,9 +82,9 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
             Semaine {vm.weekNo} · pesée du lundi
           </div>
           <h1 style={{ fontFamily: 'Anton, sans-serif', fontSize: 'clamp(38px, 6vw, 78px)', lineHeight: 0.9, margin: '10px 0 0', textTransform: 'uppercase' }}>
-            {vm.totalLost} kg de moins
+            {vm.totalMoved} kg déplacés
             <br />
-            <span style={{ color: 'rgba(242,240,230,.34)' }}>qu'au premier jour</span>
+            <span style={{ color: 'rgba(242,240,230,.34)' }}>depuis le premier jour</span>
           </h1>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
@@ -105,7 +105,7 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
               <p style={{ margin: '6px 0 0', fontSize: 13, color: 'rgba(242,240,230,.5)' }}>{vm.chartHint}</p>
             </div>
             <div style={{ display: 'flex', gap: 4, padding: 4, background: '#0E100C', border: '1px solid rgba(242,240,230,.10)', borderRadius: 999 }}>
-              <button onClick={() => setMetric('pct')} style={tabStyle(metric === 'pct')}>% perdu</button>
+              <button onClick={() => setMetric('pct')} style={tabStyle(metric === 'pct')}>% progression</button>
               <button onClick={() => setMetric('kg')} style={tabStyle(metric === 'kg')}>Poids (kg)</button>
             </div>
           </div>
@@ -199,7 +199,7 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
         {/* Ranking */}
         <div style={{ ...panel, minWidth: 0, animation: 'riseIn .7s ease both' }}>
           <h2 style={sectionTitle}>Le classement</h2>
-          <p style={{ margin: '0 0 18px', fontSize: 13, color: 'rgba(242,240,230,.5)' }}>Par pourcentage perdu depuis le départ.</p>
+          <p style={{ margin: '0 0 18px', fontSize: 13, color: 'rgba(242,240,230,.5)' }}>Par progression vers son propre objectif, à la hausse comme à la baisse.</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {vm.ranking.map((r) => (
               <div

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
-import { fmtDate, last, r1 } from '../lib/compute';
+import { dir, fmtDate, last, r1 } from '../lib/compute';
 import { FIELDS, LIME, ORANGE, primaryBtn } from '../theme';
 import type { FieldKey } from '../theme';
 import type { WeighInForm } from '../types';
@@ -17,9 +17,11 @@ export default function WeighInModal({ onClose, onSaved }: Props) {
   const prevEntry = me && me.entries.length ? last(me) : null;
   const prevWeight = prevEntry ? prevEntry.weight : me?.start ?? 0;
   const nextWeek = prevEntry ? prevEntry.week + 1 : groupMaxWeek;
+  // Pre-fill a small step the member's way, whichever way that is.
+  const goalDir = me ? dir(me) : -1;
 
   const [form, setForm] = useState<WeighInForm>(() => ({
-    weight: String(r1(prevWeight - 0.4)),
+    weight: String(r1(prevWeight + 0.4 * goalDir)),
     note: '',
     taille: prevEntry?.taille != null ? String(prevEntry.taille) : '',
     hanches: prevEntry?.hanches != null ? String(prevEntry.hanches) : '',
@@ -43,7 +45,7 @@ export default function WeighInModal({ onClose, onSaved }: Props) {
 
   const fw = parseFloat(form.weight);
   const diff = isNaN(fw) ? null : r1(fw - prevWeight);
-  const { diffText, diffColor } = useMemo(() => diffInfo(diff), [diff]);
+  const { diffText, diffColor } = useMemo(() => diffInfo(diff, goalDir), [diff, goalDir]);
 
   const nextDateLong = fmtDate(Date.now(), true);
 
@@ -60,9 +62,8 @@ export default function WeighInModal({ onClose, onSaved }: Props) {
       await saveWeighIn({ week: nextWeek, weight: r1(w), note: form.note ?? '', measures });
       const d = r1(w - prevWeight);
       onSaved(
-        d <= 0
-          ? 'Pesée publiée : ' + d + ' kg. Le groupe applaudit.'
-          : 'Pesée publiée : +' + d + ' kg. Le groupe rit.'
+        'Pesée publiée : ' + (d > 0 ? '+' : '') + d + ' kg. ' +
+          (d * goalDir >= 0 ? 'Le groupe applaudit.' : 'Le groupe rit.')
       );
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Erreur à la publication.');
@@ -187,9 +188,12 @@ const stepBtn: React.CSSProperties = {
   cursor: 'pointer',
 };
 
-function diffInfo(diff: number | null): { diffText: string; diffColor: string } {
+function diffInfo(diff: number | null, goalDir: number): { diffText: string; diffColor: string } {
   if (diff === null) return { diffText: 'Entre ton poids pour voir les dégâts.', diffColor: 'rgba(242,240,230,.45)' };
   if (diff === 0) return { diffText: 'Exactement comme la semaine dernière. Suspect.', diffColor: LIME };
-  if (diff < 0) return { diffText: Math.abs(diff) + ' kg de moins que lundi dernier. Joli.', diffColor: LIME };
-  return { diffText: '+' + diff + ' kg depuis lundi dernier. On ne juge pas (si).', diffColor: ORANGE };
+  const kg = Math.abs(diff);
+  const side = diff < 0 ? ' kg de moins que lundi dernier' : ' kg de plus que lundi dernier';
+  return diff * goalDir > 0
+    ? { diffText: kg + side + '. Joli.', diffColor: LIME }
+    : { diffText: kg + side + '. On ne juge pas (si).', diffColor: ORANGE };
 }

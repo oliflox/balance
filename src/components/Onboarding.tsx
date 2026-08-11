@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { r1 } from '../lib/compute';
-import { COLOR_CHOICES, LIME } from '../theme';
-import { Field, UnitInput, textInput } from './FormControls';
+import { COLOR_CHOICES, LIME, primaryBtn } from '../theme';
+import { ColorPicker, ErrorBanner, Field, UnitInput, textInput } from './FormControls';
 
 export default function Onboarding() {
   const { user, signOut } = useAuth();
@@ -67,51 +67,13 @@ export default function Onboarding() {
         </div>
 
         <Field label="Ta couleur" style={{ marginTop: 16 }}>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-            {COLOR_CHOICES.map((c) => (
-              <button
-                key={c}
-                onClick={() => setColor(c)}
-                aria-label={c}
-                style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: 10,
-                  background: c,
-                  cursor: 'pointer',
-                  border: color === c ? '3px solid #F2F0E6' : '3px solid transparent',
-                  boxShadow: color === c ? `0 0 0 2px ${c}` : 'none',
-                }}
-              />
-            ))}
-          </div>
+          <ColorPicker value={color} onChange={setColor} />
         </Field>
 
-        {err && (
-          <div style={{ marginTop: 16, padding: '11px 14px', background: 'rgba(255,77,77,.12)', border: '1px solid rgba(255,77,77,.35)', borderRadius: 10, color: '#FF8080', fontSize: 13 }}>
-            {err}
-          </div>
-        )}
+        {err && <ErrorBanner>{err}</ErrorBanner>}
 
         <div style={{ display: 'flex', gap: 10, marginTop: 24 }}>
-          <button
-            onClick={save}
-            disabled={busy}
-            style={{
-              flex: 1,
-              padding: 16,
-              background: LIME,
-              border: 'none',
-              borderRadius: 14,
-              color: '#0E100C',
-              fontFamily: 'Anton, sans-serif',
-              fontSize: 18,
-              letterSpacing: '.05em',
-              textTransform: 'uppercase',
-              cursor: busy ? 'wait' : 'pointer',
-              opacity: busy ? 0.7 : 1,
-            }}
-          >
+          <button onClick={save} disabled={busy} style={{ ...primaryBtn('hero', busy), flex: 1 }}>
             {busy ? 'Un instant…' : 'Entrer dans la ligue'}
           </button>
           <button

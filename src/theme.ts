@@ -81,6 +81,19 @@ export const chartTooltipStyle = (xPct: number, yPct: number, color = LIME): CSS
   zIndex: 5,
 });
 
+// The lime call-to-action, in its two sizes: 'hero' is the big Anton block
+// button that ends a form, 'pill' the compact rounded one used inline.
+export const primaryBtn = (variant: 'hero' | 'pill' = 'pill', busy = false): CSSProperties => ({
+  background: LIME,
+  border: 'none',
+  color: '#0E100C',
+  cursor: busy ? 'wait' : 'pointer',
+  opacity: busy ? 0.7 : 1,
+  ...(variant === 'hero'
+    ? { padding: 16, borderRadius: 14, fontFamily: 'Anton, sans-serif', fontSize: 18, letterSpacing: '.05em', textTransform: 'uppercase' as const }
+    : { padding: '12px 20px', borderRadius: 999, fontWeight: 700, fontSize: 14 }),
+});
+
 export const tabStyle = (on: boolean): CSSProperties => ({
   padding: '9px 16px',
   border: 'none',

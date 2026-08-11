@@ -1,6 +1,6 @@
 import { useAuth } from '../context/AuthContext';
 import { initialsOf } from '../lib/compute';
-import { LIME, tabStyle } from '../theme';
+import { LIME, primaryBtn, tabStyle } from '../theme';
 import type { Member } from '../types';
 
 interface Props {
@@ -46,21 +46,7 @@ export default function Header({ me, screen, onDash, onMe, onNewWeighIn, onSetti
 
       <button
         onClick={onNewWeighIn}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '11px 18px',
-          background: LIME,
-          border: 'none',
-          borderRadius: 999,
-          color: '#0E100C',
-          fontWeight: 700,
-          fontSize: 13.5,
-          letterSpacing: '.02em',
-          cursor: 'pointer',
-          transition: 'transform .15s ease, box-shadow .2s ease',
-        }}
+        style={{ ...primaryBtn(), display: 'flex', alignItems: 'center', gap: 8, padding: '11px 18px', fontSize: 13.5 }}
       >
         <span style={{ fontSize: 17, lineHeight: 1 }}>+</span>Nouvelle pesée
       </button>

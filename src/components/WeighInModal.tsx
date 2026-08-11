@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { fmtDate, last, r1 } from '../lib/compute';
-import { FIELDS, LIME, ORANGE } from '../theme';
+import { FIELDS, LIME, ORANGE, primaryBtn } from '../theme';
 import type { FieldKey } from '../theme';
 import type { WeighInForm } from '../types';
+import { ErrorBanner, Field, UnitInput, textInput } from './FormControls';
 
 interface Props {
   onClose: () => void;
@@ -139,43 +140,29 @@ export default function WeighInModal({ onClose, onSaved }: Props) {
         {/* Measurements */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginTop: 16 }}>
           {FIELDS.map((f) => (
-            <div key={f.key}>
-              <label style={{ display: 'block', fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(242,240,230,.5)', marginBottom: 7 }}>{f.label}</label>
-              <div style={{ display: 'flex', alignItems: 'center', background: '#0E100C', border: '1px solid rgba(242,240,230,.12)', borderRadius: 12, padding: '0 12px' }}>
-                <input
-                  type="number"
-                  step="0.1"
-                  value={form[f.key] ?? ''}
-                  onChange={(e) => setField(f.key, e.target.value)}
-                  style={{ flex: 1, minWidth: 0, padding: '13px 0', background: 'transparent', border: 'none', color: '#F2F0E6', fontSize: 16, outline: 'none', fontVariantNumeric: 'tabular-nums' }}
-                />
-                <span style={{ fontSize: 12, color: 'rgba(242,240,230,.4)' }}>{f.unit}</span>
-              </div>
-            </div>
+            <Field key={f.key} label={f.label}>
+              <UnitInput value={form[f.key] ?? ''} onChange={(v) => setField(f.key, v)} unit={f.unit} />
+            </Field>
           ))}
         </div>
 
-        {/* Note */}
-        <div style={{ marginTop: 16 }}>
-          <label style={{ display: 'block', fontSize: 11, letterSpacing: '.12em', textTransform: 'uppercase', color: 'rgba(242,240,230,.5)', marginBottom: 7 }}>Un mot pour le groupe (optionnel)</label>
+        <Field label="Un mot pour le groupe (optionnel)" style={{ marginTop: 16 }}>
           <input
             type="text"
             value={form.note}
             onChange={(e) => setField('note', e.target.value)}
             placeholder="Raclette samedi, assumé."
-            style={{ width: '100%', padding: '13px 14px', background: '#0E100C', border: '1px solid rgba(242,240,230,.12)', borderRadius: 12, color: '#F2F0E6', fontSize: 14.5, outline: 'none' }}
+            style={textInput}
           />
-        </div>
+        </Field>
 
-        {err && (
-          <div style={{ marginTop: 14, padding: '11px 14px', background: 'rgba(255,77,77,.12)', border: '1px solid rgba(255,77,77,.35)', borderRadius: 10, color: '#FF8080', fontSize: 13 }}>{err}</div>
-        )}
+        {err && <ErrorBanner>{err}</ErrorBanner>}
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 24 }}>
           <button
             onClick={save}
             disabled={busy}
-            style={{ flex: 1, minWidth: 180, padding: 16, background: LIME, border: 'none', borderRadius: 14, color: '#0E100C', fontFamily: 'Anton, sans-serif', fontSize: 18, letterSpacing: '.05em', textTransform: 'uppercase', cursor: busy ? 'wait' : 'pointer', opacity: busy ? 0.7 : 1 }}
+            style={{ ...primaryBtn('hero', busy), flex: 1, minWidth: 180 }}
           >
             {busy ? 'Publication…' : 'Publier la pesée'}
           </button>

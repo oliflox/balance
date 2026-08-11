@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchPublicStats } from '../lib/data';
 import type { PublicStats } from '../lib/data';
-import { GROUP_NAME, LIME } from '../theme';
+import { GROUP_NAME, LIME, primaryBtn } from '../theme';
+import { ErrorBanner } from './FormControls';
 
 const inputBase: React.CSSProperties = {
   width: '100%',
@@ -153,11 +154,7 @@ export default function Login() {
             </button>
           </div>
 
-          {err && (
-            <div style={{ marginTop: 14, padding: '11px 14px', background: 'rgba(255,77,77,.12)', border: '1px solid rgba(255,77,77,.35)', borderRadius: 10, color: '#FF8080', fontSize: 13 }}>
-              {err}
-            </div>
-          )}
+          {err && <ErrorBanner>{err}</ErrorBanner>}
 
           {resetSent && (
             <div style={{ marginTop: 14, padding: '11px 14px', background: 'rgba(200,255,61,.08)', border: '1px solid rgba(200,255,61,.3)', borderRadius: 10, color: LIME, fontSize: 13 }}>
@@ -165,26 +162,7 @@ export default function Login() {
             </div>
           )}
 
-          <button
-            onClick={submit}
-            disabled={busy}
-            style={{
-              width: '100%',
-              marginTop: 24,
-              padding: 17,
-              background: LIME,
-              border: 'none',
-              borderRadius: 12,
-              color: '#0E100C',
-              fontFamily: 'Anton, sans-serif',
-              fontSize: 19,
-              letterSpacing: '.06em',
-              textTransform: 'uppercase',
-              cursor: busy ? 'wait' : 'pointer',
-              opacity: busy ? 0.7 : 1,
-              transition: 'transform .15s ease, box-shadow .2s ease',
-            }}
-          >
+          <button onClick={submit} disabled={busy} style={{ ...primaryBtn('hero', busy), width: '100%', marginTop: 24 }}>
             {busy ? 'Un instant…' : 'Monter sur la balance'}
           </button>
 

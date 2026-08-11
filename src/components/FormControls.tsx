@@ -1,3 +1,5 @@
+import { COLOR_CHOICES } from '../theme';
+
 export const textInput: React.CSSProperties = {
   width: '100%',
   padding: '13px 14px',
@@ -16,6 +18,37 @@ export function Field({ label, children, style }: { label: string; children: Rea
         {label}
       </label>
       {children}
+    </div>
+  );
+}
+
+export function ErrorBanner({ children }: { children: React.ReactNode }) {
+  return (
+    <div style={{ marginTop: 14, padding: '11px 14px', background: 'rgba(255,77,77,.12)', border: '1px solid rgba(255,77,77,.35)', borderRadius: 10, color: '#FF8080', fontSize: 13 }}>
+      {children}
+    </div>
+  );
+}
+
+export function ColorPicker({ value, onChange }: { value: string; onChange: (c: string) => void }) {
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+      {COLOR_CHOICES.map((c) => (
+        <button
+          key={c}
+          onClick={() => onChange(c)}
+          aria-label={c}
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 10,
+            background: c,
+            cursor: 'pointer',
+            border: value === c ? '3px solid #F2F0E6' : '3px solid transparent',
+            boxShadow: value === c ? `0 0 0 2px ${c}` : 'none',
+          }}
+        />
+      ))}
     </div>
   );
 }

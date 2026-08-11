@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { gridLines, hasEntries, initialsOf, personVals } from '../lib/compute';
-import { LIME, ORANGE, PANEL, chartTooltipStyle, mainStyle, panel, sectionTitle } from '../theme';
+import { LIME, ORANGE, PANEL, chartTooltipStyle, mainStyle, panel, primaryBtn, sectionTitle } from '../theme';
 
 interface Props {
   focusId: string;
@@ -31,7 +31,7 @@ export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
             {isMe ? "Tu n'as pas encore de pesée. Le premier chiffre, c'est le plus dur." : "Ce membre ne s'est pas encore pesé."}
           </p>
           {isMe && (
-            <button onClick={onNewWeighIn} style={{ marginTop: 12, padding: '12px 20px', background: LIME, border: 'none', borderRadius: 999, color: '#0E100C', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
+            <button onClick={onNewWeighIn} style={{ ...primaryBtn(), marginTop: 12 }}>
               + Ma première pesée
             </button>
           )}
@@ -69,7 +69,7 @@ export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
         <div style={{ ...panel, gridColumn: 'span 2', minWidth: 0, animation: 'riseIn .6s ease both', position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
             <h2 style={sectionTitle}>Poids dans le temps</h2>
-            <div style={{ fontSize: 13, color: 'rgba(242,240,230,.5)' }}>{p.range}</div>
+            <div style={{ fontSize: 13, color: 'rgba(242,240,230,.5)' }}>{p.from} → {p.to}</div>
           </div>
           <div style={{ position: 'relative', marginTop: 18 }}>
             <svg viewBox="0 0 900 300" preserveAspectRatio="none" style={{ width: '100%', height: 'clamp(220px, 30vw, 300px)', display: 'block', overflow: 'visible' }}>
@@ -104,7 +104,8 @@ export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
             {tip && <div style={chartTooltipStyle(tip.x, tip.y, tip.color)}>{tip.text}</div>}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(242,240,230,.35)' }}>
-            {xLabelsForPerson(p.range)}
+            <span>{p.from}</span>
+            <span>{p.to}</span>
           </div>
           <div style={{ display: 'flex', gap: 18, marginTop: 16, fontSize: 12, color: 'rgba(242,240,230,.5)' }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
@@ -208,14 +209,3 @@ export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
 }
 
 const td: React.CSSProperties = { padding: '13px 12px 13px 0', fontSize: 13.5 };
-
-// The personal chart x-axis simply shows the tracked range endpoints.
-function xLabelsForPerson(range: string) {
-  const [from, to] = range.split(' → ');
-  return (
-    <>
-      <span>{from}</span>
-      <span>{to}</span>
-    </>
-  );
-}

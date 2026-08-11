@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { dashboard, gridLines, hasEntries, initialsOf } from '../lib/compute';
-import { LIME, ORANGE, PANEL, chartTooltipStyle, mainStyle, panel, sectionTitle, tabStyle } from '../theme';
+import { LIME, ORANGE, PANEL, chartTooltipStyle, mainStyle, panel, primaryBtn, sectionTitle, tabStyle } from '../theme';
 
 interface Props {
   onOpenPerson: (id: string) => void;
@@ -116,20 +116,22 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
               {vm.chart.series.map((s) => (
                 <path key={s.id} d={s.d} fill="none" stroke={s.color} strokeWidth={s.w} strokeLinecap="round" strokeLinejoin="round" opacity={s.op} vectorEffect="non-scaling-stroke" style={{ transition: 'opacity .25s ease' }} />
               ))}
-              {vm.chart.series.map((s) => (
-                <circle
-                  key={s.id + '-d'}
-                  cx={s.lx}
-                  cy={s.ly}
-                  r={4}
-                  fill={s.color}
-                  opacity={s.op}
-                  vectorEffect="non-scaling-stroke"
-                  style={{ cursor: 'pointer' }}
-                  onMouseEnter={() => setTip({ x: (s.lx / 900) * 100, y: (s.ly / 330) * 100, text: `${s.name} — ${s.weight} kg`, color: s.color })}
-                  onMouseLeave={() => setTip(null)}
-                />
-              ))}
+              {vm.chart.series.flatMap((s) =>
+                s.dots.map((d, i) => (
+                  <circle
+                    key={s.id + '-d' + i}
+                    cx={d.x}
+                    cy={d.y}
+                    r={4}
+                    fill={s.color}
+                    opacity={s.op}
+                    vectorEffect="non-scaling-stroke"
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={() => setTip({ x: (d.x / 900) * 100, y: (d.y / 330) * 100, text: `${s.name} — ${d.weight} kg`, color: s.color })}
+                    onMouseLeave={() => setTip(null)}
+                  />
+                ))
+              )}
             </svg>
             {tip && <div style={chartTooltipStyle(tip.x, tip.y, tip.color)}>{tip.text}</div>}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(242,240,230,.35)' }}>
@@ -288,17 +290,7 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
   );
 }
 
-const ctaBtn: React.CSSProperties = {
-  marginTop: 16,
-  padding: '12px 20px',
-  background: LIME,
-  border: 'none',
-  borderRadius: 999,
-  color: '#0E100C',
-  fontWeight: 700,
-  fontSize: 14,
-  cursor: 'pointer',
-};
+const ctaBtn: React.CSSProperties = { ...primaryBtn(), marginTop: 16 };
 
 function StatCard({ label, big, small, smallColor }: { label: string; big: string; small: string; smallColor: string }) {
   return (

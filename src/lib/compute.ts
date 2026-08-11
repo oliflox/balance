@@ -26,16 +26,14 @@ export const path = (pts: number[][]) =>
 
 // ---- Group chart (all members' curves) ---------------------------------------
 
-export interface Series {
+interface Series {
   id: string;
   name: string;
-  weight: number;
   color: string;
   d: string;
   w: number;
   op: number;
-  lx: number;
-  ly: number;
+  dots: { x: number; y: number; weight: number }[];
 }
 
 // Monday of the week containing BASE_DATE — the group weighs in on Mondays,
@@ -61,8 +59,8 @@ export function groupChart(members: Member[], metric: 'pct' | 'kg', hidden: Reco
   const series: Series[] = members.map((m) => {
     const pts = m.entries.map((e) => [x(calWeek(e.date)), y(metric === 'pct' ? ((m.start - e.weight) / m.start) * 100 : e.weight)]);
     const off = !!hidden[m.id];
-    const lp = pts[pts.length - 1];
-    return { id: m.id, name: m.name, weight: last(m).weight, color: m.color, d: path(pts), w: m.id === meId ? 3.5 : 2, op: off ? 0.06 : 1, lx: lp[0], ly: lp[1] };
+    const dots = m.entries.map((e, i) => ({ x: pts[i][0], y: pts[i][1], weight: e.weight }));
+    return { id: m.id, name: m.name, color: m.color, d: path(pts), w: m.id === meId ? 3.5 : 2, op: off ? 0.06 : 1, dots };
   });
 
   const yLabels: string[] = [];
@@ -160,7 +158,8 @@ export function personVals(m: Member, meId: string) {
     isMe: m.id === meId,
     subtitle: m.id === meId ? 'Mon suivi personnel' : 'Suivi de ' + m.name + ' (mode espion)',
     target: m.target,
-    range: fmtDate(es[0].date) + ' → ' + fmtDate(l.date),
+    from: fmtDate(es[0].date),
+    to: fmtDate(l.date),
     line: path(pts),
     area:
       path(pts) +
@@ -309,8 +308,10 @@ export function dashboard(members: Member[], meId: string, metric: 'pct' | 'kg',
     .slice(0, 6)
     .map((x) => {
       const m = x.m, l = last(m);
+      // No previous entry → nothing to compare against, so no delta at all.
+      const gap = m.entries.length < 2 ? '' : ' (' + (x.d > 0 ? '+' : x.d < 0 ? '−' : '±') + Math.abs(x.d) + ' kg)';
       const txt = l.note
-        ? '« ' + l.note + ' » — ' + l.weight + ' kg'
+        ? '« ' + l.note + ' » — ' + l.weight + ' kg' + gap
         : x.d < 0
         ? 'a lâché ' + Math.abs(x.d) + ' kg cette semaine. ' + l.weight + ' kg au compteur.'
         : x.d > 0

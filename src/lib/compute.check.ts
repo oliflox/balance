@@ -1,7 +1,7 @@
 // Self-check for buildTrophies. No test runner in this project, so run it with
 // the esbuild that ships with vite:
 //   npx esbuild src/lib/compute.check.ts --bundle --platform=node --outfile=check.mjs && node check.mjs && rm check.mjs
-import { buildTrophies } from './compute';
+import { buildTrophies, dashboard } from './compute';
 import type { Entry, Member } from '../types';
 
 const D = (iso: string) => Date.parse(iso + 'T00:00:00Z');
@@ -41,4 +41,18 @@ ok(who('Rattrapage du dimanche') === 'Carol', 'pesée un dimanche');
 ok(who('Le pilier') === 'Alice', '4 pesées');
 ok(!t.some((x) => x.title === 'Objectif atteint'), 'personne n’a atteint sa cible');
 
-console.log(`OK — ${t.length} trophées attribués`);
+// Feed: a note must carry the delta, but only when there is a previous weigh-in.
+const solo = member('Solo', 90, [e(3, '2026-08-17', 89)]);
+solo.entries[0].note = 'première';
+alice.entries[3].note = 'raclette';
+const feed = dashboard([alice, solo], '', 'pct', {}, {});
+const feedOf = (name: string) => feed.feed.find((f) => f.name === name)?.text ?? '';
+
+ok(feedOf('Alice').includes('(−2 kg)'), 'note + poids + écart avec la pesée précédente');
+ok(!feedOf('Solo').includes('kg)'), 'aucun écart affiché sur une première pesée');
+
+// Chart: one dot per weigh-in, not just the last one.
+const dots = feed.chart.series.find((s) => s.name === 'Alice')?.dots ?? [];
+ok(dots.length === 4, `4 points pour 4 pesées, reçu ${dots.length}`);
+
+console.log(`OK — ${t.length} trophées, feed et points du graphe vérifiés`);

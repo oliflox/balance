@@ -48,7 +48,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setLoading(true);
     refresh();
-    const id = setInterval(refresh, 30000);
+    const id = setInterval(refresh, 60000);
     return () => clearInterval(id);
   }, [refresh]);
 

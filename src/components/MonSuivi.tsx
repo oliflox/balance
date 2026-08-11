@@ -64,7 +64,9 @@ export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
 
       {/* Chart + side column */}
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: 20, marginTop: 26, alignItems: 'start' }}>
-        <div style={{ ...panel, gridColumn: 'span 2', minWidth: 0, animation: 'riseIn .6s ease both' }}>
+        {/* relative+zIndex: riseIn makes each panel a stacking context, so the
+            chart tooltip can't escape it — the panel itself must outrank its siblings. */}
+        <div style={{ ...panel, gridColumn: 'span 2', minWidth: 0, animation: 'riseIn .6s ease both', position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
             <h2 style={sectionTitle}>Poids dans le temps</h2>
             <div style={{ fontSize: 13, color: 'rgba(242,240,230,.5)' }}>{p.range}</div>

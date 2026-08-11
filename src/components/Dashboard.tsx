@@ -94,7 +94,9 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
 
       {/* Chart + ranking */}
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 420px), 1fr))', gap: 20, marginTop: 26, alignItems: 'start' }}>
-        <div style={{ ...panel, gridColumn: 'span 2', minWidth: 0, animation: 'riseIn .6s ease both' }}>
+        {/* relative+zIndex: riseIn makes each panel a stacking context, so the
+            chart tooltip can't escape it — the panel itself must outrank its siblings. */}
+        <div style={{ ...panel, gridColumn: 'span 2', minWidth: 0, animation: 'riseIn .6s ease both', position: 'relative', zIndex: 2 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
             <div>
               <h2 style={sectionTitle}>Toutes les courbes</h2>

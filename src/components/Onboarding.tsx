@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { r1 } from '../lib/compute';
+import { r1, validateProfile } from '../lib/compute';
 import { COLOR_CHOICES, LIME, primaryBtn } from '../theme';
 import { ColorPicker, ErrorBanner, Field, UnitInput, textInput } from './FormControls';
 
@@ -19,10 +19,8 @@ export default function Onboarding() {
     setErr('');
     const s = parseFloat(start);
     const t = parseFloat(target);
-    if (!name.trim()) return setErr('Il nous faut un nom pour te chambrer.');
-    if (isNaN(s) || s < 30 || s > 250) return setErr('Poids de départ : entre 30 et 250 kg.');
-    if (isNaN(t) || t < 30 || t > 250) return setErr('Objectif : entre 30 et 250 kg.');
-    if (t >= s) return setErr("L'objectif doit être inférieur au poids de départ.");
+    const bad = validateProfile(name, s, t);
+    if (bad) return setErr(bad);
     setBusy(true);
     try {
       await createMyProfile({ name: name.trim(), color, start: r1(s), target: r1(t) });

@@ -1,7 +1,7 @@
 // Self-check for buildTrophies. No test runner in this project, so run it with
 // the esbuild that ships with vite:
 //   npx esbuild src/lib/compute.check.ts --bundle --platform=node --outfile=check.mjs && node check.mjs && rm check.mjs
-import { buildTrophies, dashboard } from './compute';
+import { buildTrophies, dashboard, validateProfile } from './compute';
 import type { Entry, Member } from '../types';
 
 const D = (iso: string) => Date.parse(iso + 'T00:00:00Z');
@@ -55,4 +55,12 @@ ok(!feedOf('Solo').includes('kg)'), 'aucun écart affiché sur une première pes
 const dots = feed.chart.series.find((s) => s.name === 'Alice')?.dots ?? [];
 ok(dots.length === 4, `4 points pour 4 pesées, reçu ${dots.length}`);
 
-console.log(`OK — ${t.length} trophées, feed et points du graphe vérifiés`);
+// Profile rules, shared by onboarding and settings.
+ok(validateProfile('Marco', 96, 84) === null, 'un profil valide passe');
+ok(validateProfile('  ', 96, 84) !== null, 'nom vide refusé');
+ok(validateProfile('Marco', NaN, 84) !== null, 'poids non numérique refusé');
+ok(validateProfile('Marco', 20, 15) !== null, 'poids sous 30 kg refusé');
+ok(validateProfile('Marco', 300, 84) !== null, 'poids au-dessus de 250 kg refusé');
+ok(validateProfile('Marco', 96, 96) !== null, 'objectif égal au départ refusé');
+
+console.log(`OK — ${t.length} trophées, feed, points du graphe et validation vérifiés`);

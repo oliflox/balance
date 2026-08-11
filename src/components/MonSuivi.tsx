@@ -9,6 +9,8 @@ interface Props {
 }
 
 const TABLE_HEAD = ['Date', 'Poids', 'Δ', 'Taille', 'Hanches', 'Bras', 'Cuisse', 'Poitrine', '% MG'];
+// Same order as the last six TABLE_HEAD entries.
+const MEASURE_COLS = ['taille', 'hanches', 'bras', 'cuisse', 'poitrine', 'mg'] as const;
 
 export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
   const { members, me } = useData();
@@ -192,12 +194,9 @@ export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
                   <td style={{ ...td, color: 'rgba(242,240,230,.65)', whiteSpace: 'nowrap' }}>{h.date}</td>
                   <td style={{ ...td, fontSize: 15, fontWeight: 600 }}>{h.weight}</td>
                   <td style={{ ...td, color: h.deltaColor }}>{h.delta}</td>
-                  <td style={{ ...td, color: 'rgba(242,240,230,.65)' }}>{h.taille}</td>
-                  <td style={{ ...td, color: 'rgba(242,240,230,.65)' }}>{h.hanches}</td>
-                  <td style={{ ...td, color: 'rgba(242,240,230,.65)' }}>{h.bras}</td>
-                  <td style={{ ...td, color: 'rgba(242,240,230,.65)' }}>{h.cuisse}</td>
-                  <td style={{ ...td, color: 'rgba(242,240,230,.65)' }}>{h.poitrine}</td>
-                  <td style={{ ...td, color: 'rgba(242,240,230,.65)' }}>{h.mg}</td>
+                  {MEASURE_COLS.map((k) => (
+                    <td key={k} style={{ ...td, color: 'rgba(242,240,230,.65)' }}>{h[k]}</td>
+                  ))}
                 </tr>
               ))}
             </tbody>

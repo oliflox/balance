@@ -9,7 +9,6 @@ interface AuthValue {
   loading: boolean;
   passwordRecovery: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
   resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
@@ -44,12 +43,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async signIn(email, password) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-      },
-      async signUp(email, password) {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        // If email confirmation is enabled, there is no active session yet.
-        return { needsConfirmation: !data.session };
       },
       async resetPassword(email) {
         const { error } = await supabase.auth.resetPasswordForEmail(email);

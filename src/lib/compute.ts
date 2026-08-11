@@ -21,6 +21,15 @@ export function pctLost(m: Member): number {
   return ((m.start - l.weight) / m.start) * 100;
 }
 
+// Same rules at onboarding and in settings. Returns the complaint, or null.
+export function validateProfile(name: string, start: number, target: number): string | null {
+  if (!name.trim()) return 'Il faut un nom.';
+  if (isNaN(start) || start < 30 || start > 250) return 'Poids de départ : entre 30 et 250 kg.';
+  if (isNaN(target) || target < 30 || target > 250) return 'Objectif : entre 30 et 250 kg.';
+  if (target >= start) return "L'objectif doit être inférieur au poids de départ.";
+  return null;
+}
+
 export const path = (pts: number[][]) =>
   pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' ');
 
@@ -63,16 +72,14 @@ export function groupChart(members: Member[], metric: 'pct' | 'kg', hidden: Reco
     return { id: m.id, name: m.name, color: m.color, d: path(pts), w: m.id === meId ? 3.5 : 2, op: off ? 0.06 : 1, dots };
   });
 
-  const yLabels: string[] = [];
-  for (let i = 0; i < 5; i++) {
+  const yLabels = Array.from({ length: 5 }, (_, i) => {
     const v = hi - ((hi - lo) * i) / 4;
-    yLabels.push(metric === 'pct' ? r1(v) + '%' : Math.round(v) + ' kg');
-  }
+    return metric === 'pct' ? r1(v) + '%' : Math.round(v) + ' kg';
+  });
 
   // One label per week: they naturally dedupe and pack closer together
   // (space-between layout) as the contest runs for more weeks.
-  const xLabels: string[] = [];
-  for (let wk = 0; wk <= maxWeek; wk++) xLabels.push(String(wk + 1));
+  const xLabels = Array.from({ length: maxWeek + 1 }, (_, i) => String(i + 1));
   return { series, yLabels, xLabels, maxWeek };
 }
 

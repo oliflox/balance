@@ -36,7 +36,7 @@ interface ReactionRow {
 const num = (v: number | string | null | undefined): number | null =>
   v == null || v === '' ? null : Number(v);
 
-export interface FetchResult {
+interface FetchResult {
   members: Member[];
   reactions: ReactionIndex;
 }

@@ -29,9 +29,7 @@ export interface Member {
 // entryId -> emoji -> { count, mine }
 export type ReactionIndex = Record<string, Record<string, { count: number; mine: boolean }>>;
 
-export type MeasureValue = Partial<Record<FieldKey, string>>;
-
-export interface WeighInForm extends MeasureValue {
+export interface WeighInForm extends Partial<Record<FieldKey, string>> {
   weight: string;
   note: string;
 }

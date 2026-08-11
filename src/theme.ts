@@ -1,21 +1,17 @@
 // Design tokens & constants ported from the original Balance mockup.
 import type { CSSProperties } from 'react';
 
-export const BG = '#0E100C';
 export const PANEL = '#191C14';
 export const INK = '#F2F0E6';
 export const LIME = '#C8FF3D';
 export const ORANGE = '#FF7A2F';
-export const RED = '#FF4D4D';
 
 export const GROUP_NAME = 'La ligue du lundi';
 export const ACCENT = LIME;
 
-export const EMOJIS = ['🔥', '💪', '😂', '🐐'] as const;
-
 export type FieldKey = 'taille' | 'hanches' | 'poitrine' | 'bras' | 'cuisse' | 'mg';
 
-export interface FieldDef {
+interface FieldDef {
   key: FieldKey;
   label: string;
   unit: string;

@@ -14,7 +14,6 @@ interface DataValue {
   reactions: ReactionIndex;
   me: Member | null; // the profile linked to the signed-in user
   groupMaxWeek: number;
-  refresh: () => Promise<void>;
   createMyProfile: (p: NewProfile) => Promise<void>;
   updateMyProfile: (fields: ProfileUpdate) => Promise<void>;
   saveWeighIn: (w: NewWeighIn) => Promise<void>;
@@ -69,7 +68,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       reactions,
       me,
       groupMaxWeek,
-      refresh,
       async createMyProfile(p) {
         if (!user) throw new Error('Non connecté');
         await createProfile(user.id, p);

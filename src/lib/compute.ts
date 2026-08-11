@@ -189,6 +189,103 @@ export function personVals(m: Member, meId: string) {
   };
 }
 
+// ---- Trophies ----------------------------------------------------------------
+
+export interface Trophy {
+  icon: string;
+  title: string;
+  who: string;
+  note: string;
+  tone: 'good' | 'bad';
+}
+
+// Everything is derived from the entries: no trophy is stored anywhere.
+// "Due" weeks start at each member's own first weigh-in, so people who joined
+// in week 2 or 3 are never blamed for the weeks before they existed.
+export function buildTrophies(members: Member[], maxWeek: number): Trophy[] {
+  const stats = members.filter(hasEntries).map((m) => {
+    const es = m.entries;
+    const weeks = [...new Set(es.map((e) => calWeek(e.date)))].sort((a, b) => a - b);
+    let run = 1, bestStreak = 1;
+    for (let i = 1; i < weeks.length; i++) {
+      run = weeks[i] - weeks[i - 1] === 1 ? run + 1 : 1;
+      if (run > bestStreak) bestStreak = run;
+    }
+    let drop = 0, gain = 0;
+    for (let i = 1; i < es.length; i++) {
+      const d = es[i].weight - es[i - 1].weight;
+      if (d < drop) drop = d;
+      if (d > gain) gain = d;
+    }
+    // Weigh-in dates are date-only columns parsed as UTC midnight, so UTC day
+    // is the real day. calWeek() buckets Mon-Sun, hence Sunday = last minute.
+    const days = es.map((e) => new Date(e.date).getUTCDay());
+    const taille = es.map((e) => e.taille).filter((v): v is number => v != null);
+    const w3 = es.slice(-3).map((e) => e.weight);
+    return {
+      m,
+      pct: pctLost(m),
+      count: es.length,
+      joinWeek: weeks[0],
+      missed: maxWeek - weeks[0] + 1 - weeks.length,
+      bestStreak,
+      drop: r1(drop),
+      gain: r1(gain),
+      late: days.filter((d) => d !== 1).length,
+      sundays: days.filter((d) => d === 0).length,
+      tailleLost: taille.length > 1 ? r1(taille[0] - taille[taille.length - 1]) : 0,
+      flat: w3.length === 3 && Math.max(...w3) - Math.min(...w3) <= 0.3,
+      reached: last(m).weight <= m.target,
+    };
+  });
+
+  type Stat = (typeof stats)[number];
+  const out: Trophy[] = [];
+  const add = (icon: string, title: string, who: string, note: string, tone: Trophy['tone'] = 'good') => {
+    if (who) out.push({ icon, title, who, note, tone });
+  };
+  const top = (score: (s: Stat) => number) => {
+    const w = stats.slice().sort((a, b) => score(b) - score(a))[0];
+    return w && score(w) > 0 ? w : null;
+  };
+  const all = (ok: (s: Stat) => boolean) => stats.filter(ok).map((s) => s.m.name).join(', ');
+
+  const boss = top((s) => s.pct);
+  if (boss) add('🥇', 'Le patron', boss.m.name, r1(boss.pct) + ' % envolés depuis le début');
+
+  const smash = top((s) => -s.drop);
+  if (smash) add('💥', 'Coup de massue', smash.m.name, smash.drop + ' kg en une seule semaine');
+
+  add('🎯', 'Objectif atteint', all((s) => s.reached), 'La cible est déjà dans le rétroviseur');
+
+  const metro = top((s) => s.bestStreak - 1);
+  if (metro) add('🔗', 'Métronome', metro.m.name, metro.bestStreak + ' semaines d’affilée sans faillir');
+
+  add('⏰', 'Pile à l’heure', all((s) => s.count > 1 && s.late === 0), 'Toujours le lundi. Jamais un jour de plus.');
+  add('💯', 'Sans faute', all((s) => s.count > 1 && s.missed === 0), 'Zéro semaine sautée depuis son arrivée');
+
+  const pilier = top((s) => s.count);
+  if (pilier) add('🏋️', 'Le pilier', pilier.m.name, pilier.count + ' pesées au compteur');
+
+  const ruban = top((s) => s.tailleLost);
+  if (ruban) add('📏', 'Le mètre ruban', ruban.m.name, '−' + ruban.tailleLost + ' cm de tour de taille');
+
+  add('🌱', 'Petit nouveau', all((s) => s.joinWeek > 0), 'Arrivé après le coup d’envoi, et ça se voit');
+
+  const slow = top((s) => s.late);
+  if (slow) add('🐌', 'Le retardataire', slow.m.name, slow.late + ' pesées un autre jour que lundi', 'bad');
+
+  add('👻', 'Le fantôme', all((s) => s.missed > 0), 'Au moins une semaine portée disparue', 'bad');
+
+  const yoyo = top((s) => s.gain);
+  if (yoyo) add('🎢', 'Effet yoyo', yoyo.m.name, '+' + yoyo.gain + ' kg repris d’un coup', 'bad');
+
+  add('🛋️', 'Le plateau', all((s) => s.flat), 'Trois pesées, la même balance, aucun suspense', 'bad');
+  add('🌙', 'Rattrapage du dimanche', all((s) => s.sundays > 0), 'Pesée in extremis avant la fin de semaine', 'bad');
+
+  return out;
+}
+
 // ---- Dashboard ---------------------------------------------------------------
 
 export function dashboard(members: Member[], meId: string, metric: 'pct' | 'kg', hidden: Record<string, boolean>, reactions: ReactionIndex) {
@@ -263,12 +360,7 @@ export function dashboard(members: Member[], meId: string, metric: 'pct' | 'kg',
     hidden: !!hidden[m.id],
   }));
 
-  const trophies = members.slice(0, 8).map((m, i) => ({
-    icon: m.trophy[0] || '🥇',
-    title: m.trophy[1] || 'Membre',
-    who: m.name,
-    highlight: i === 0,
-  }));
+  const trophies = buildTrophies(members, maxWeek);
 
   return {
     chart,

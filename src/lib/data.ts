@@ -10,8 +10,6 @@ interface ProfileRow {
   start_weight: number | string;
   target: number | string;
   roast: string | null;
-  trophy_icon: string | null;
-  trophy_title: string | null;
 }
 
 interface EntryRow {
@@ -83,7 +81,6 @@ export async function fetchAll(userId: string | null): Promise<FetchResult> {
     start: Number(p.start_weight),
     target: Number(p.target),
     roast: p.roast ?? '',
-    trophy: [p.trophy_icon ?? '', p.trophy_title ?? ''],
     isMe: !!userId && p.user_id === userId,
     entries: (byProfile[p.id] ?? []).sort((a, b) => a.week - b.week),
   }));

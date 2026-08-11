@@ -269,13 +269,14 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
                 style={{
                   padding: 16,
                   borderRadius: 16,
-                  background: t.highlight ? 'rgba(200,255,61,.10)' : '#0E100C',
-                  border: `1px solid ${t.highlight ? 'rgba(200,255,61,.3)' : 'rgba(242,240,230,.09)'}`,
+                  background: t.tone === 'good' ? 'rgba(200,255,61,.10)' : 'rgba(255,122,47,.10)',
+                  border: `1px solid ${t.tone === 'good' ? 'rgba(200,255,61,.3)' : 'rgba(255,122,47,.3)'}`,
                 }}
               >
                 <div style={{ fontSize: 22 }}>{t.icon}</div>
                 <div style={{ fontFamily: 'Anton, sans-serif', fontSize: 15, marginTop: 8, textTransform: 'uppercase', letterSpacing: '.03em' }}>{t.title}</div>
-                <div style={{ fontSize: 11.5, color: 'rgba(242,240,230,.5)', marginTop: 3 }}>{t.who}</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: t.tone === 'good' ? LIME : ORANGE, marginTop: 3 }}>{t.who}</div>
+                <div style={{ fontSize: 11, color: 'rgba(242,240,230,.45)', marginTop: 4, lineHeight: 1.35 }}>{t.note}</div>
               </div>
             ))}
           </div>

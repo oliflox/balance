@@ -12,7 +12,7 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
   const { members, activeMembers, me, reactions, react } = useData();
   const [metric, setMetric] = useState<'pct' | 'kg'>('pct');
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
-  const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
+  const [tip, setTip] = useState<{ x: number; y: number; text: string; color: string } | null>(null);
 
   const vm = useMemo(
     () => dashboard(activeMembers, me?.id ?? '', metric, hidden, reactions),
@@ -124,12 +124,12 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
                   opacity={s.op}
                   vectorEffect="non-scaling-stroke"
                   style={{ cursor: 'pointer' }}
-                  onMouseEnter={() => setTip({ x: (s.lx / 900) * 100, y: (s.ly / 330) * 100, text: `${s.name} — ${s.weight} kg` })}
+                  onMouseEnter={() => setTip({ x: (s.lx / 900) * 100, y: (s.ly / 330) * 100, text: `${s.name} — ${s.weight} kg`, color: s.color })}
                   onMouseLeave={() => setTip(null)}
                 />
               ))}
             </svg>
-            {tip && <div style={chartTooltipStyle(tip.x, tip.y)}>{tip.text}</div>}
+            {tip && <div style={chartTooltipStyle(tip.x, tip.y, tip.color)}>{tip.text}</div>}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(242,240,230,.35)' }}>
               {vm.chart.xLabels.map((l, i) => (
                 <span key={i}>{l}</span>

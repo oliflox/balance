@@ -14,7 +14,7 @@ export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
   const { members, me } = useData();
   const member = useMemo(() => members.find((m) => m.id === focusId) ?? me, [members, focusId, me]);
   const grid = gridLines();
-  const [tip, setTip] = useState<{ x: number; y: number; text: string } | null>(null);
+  const [tip, setTip] = useState<{ x: number; y: number; text: string; color: string } | null>(null);
 
   if (!member) return null;
 
@@ -94,12 +94,12 @@ export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
                   strokeWidth={2}
                   vectorEffect="non-scaling-stroke"
                   style={{ cursor: 'pointer' }}
-                  onMouseEnter={() => setTip({ x: (d.x / 900) * 100, y: (d.y / 300) * 100, text: d.label })}
+                  onMouseEnter={() => setTip({ x: (d.x / 900) * 100, y: (d.y / 300) * 100, text: d.label, color: p.color })}
                   onMouseLeave={() => setTip(null)}
                 />
               ))}
             </svg>
-            {tip && <div style={chartTooltipStyle(tip.x, tip.y)}>{tip.text}</div>}
+            {tip && <div style={chartTooltipStyle(tip.x, tip.y, tip.color)}>{tip.text}</div>}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(242,240,230,.35)' }}>
             {xLabelsForPerson(p.range)}

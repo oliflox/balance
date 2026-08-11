@@ -63,16 +63,16 @@ export const sectionTitle: CSSProperties = {
 
 // Positioned bubble for chart-point hover tooltips (xPct/yPct = position in
 // the SVG's own 0-100% box, since viewBox width maps 1:1 to container width).
-export const chartTooltipStyle = (xPct: number, yPct: number): CSSProperties => ({
+export const chartTooltipStyle = (xPct: number, yPct: number, color = LIME): CSSProperties => ({
   position: 'absolute',
   left: `${xPct}%`,
   top: `${yPct}%`,
-  transform: 'translate(-50%, -130%)',
+  transform: 'translate(-50%, -220%)',
   padding: '6px 10px',
-  background: '#0E100C',
-  border: '1px solid rgba(200,255,61,.4)',
+  background: color,
+  border: `1px solid ${color}`,
   borderRadius: 10,
-  color: LIME,
+  color: '#0E100C',
   fontSize: 12,
   fontWeight: 600,
   whiteSpace: 'nowrap',

@@ -8,8 +8,7 @@ interface Props {
   onNewWeighIn: () => void;
 }
 
-// Gutter reserved for the y-axis labels, wide enough for "104 kg".
-const Y_AXIS_W = 44;
+const PLOT_H = 'clamp(240px, 34vw, 340px)';
 
 export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
   const { members, activeMembers, me, reactions, react } = useData();
@@ -111,51 +110,61 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
             </div>
           </div>
 
-          {/* paddingLeft carves a gutter for the y-axis labels so they sit
-              beside the plot instead of on top of it — and so the first week
-              label lines up with the start of the curves. */}
-          <div style={{ position: 'relative', marginTop: 20, paddingLeft: Y_AXIS_W }}>
-            <svg viewBox="0 0 900 330" preserveAspectRatio="none" style={{ width: '100%', height: 'clamp(240px, 34vw, 340px)', display: 'block', overflow: 'visible' }}>
-              {grid.map((g, i) => (
-                <line key={i} x1={0} y1={g.y} x2={900} y2={g.y} stroke="rgba(242,240,230,.09)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
-              ))}
-              {vm.chart.series.map((s) => (
-                <path key={s.id} d={s.d} fill="none" stroke={s.color} strokeWidth={s.w} strokeLinecap="round" strokeLinejoin="round" opacity={s.op} vectorEffect="non-scaling-stroke" style={{ transition: 'opacity .25s ease' }} />
-              ))}
-              {vm.chart.series.flatMap((s) =>
-                s.dots.map((d, i) => (
-                  <circle
-                    key={s.id + '-d' + i}
-                    cx={d.x}
-                    cy={d.y}
-                    r={4}
-                    fill={s.color}
-                    opacity={s.op}
-                    vectorEffect="non-scaling-stroke"
-                    style={{ cursor: 'pointer' }}
-                    onMouseEnter={() => setTip({ x: (d.x / 900) * 100, y: (d.y / 330) * 100, text: `${s.name} — ${d.weight} kg`, color: s.color })}
-                    onMouseLeave={() => setTip(null)}
-                  />
-                ))
-              )}
-            </svg>
-            {tip && <div style={chartTooltipStyle(tip.x, tip.y, tip.color)}>{tip.text}</div>}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(242,240,230,.35)' }}>
-              {vm.chart.xLabels.map((l, i) => (
-                <span key={i}>{l}</span>
-              ))}
-            </div>
-            <div style={{ position: 'absolute', top: 0, left: 0, width: Y_AXIS_W, height: 'clamp(240px, 34vw, 340px)', pointerEvents: 'none' }}>
+          <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
+            {/* Every label shares one grid cell, so the column measures itself
+                against the widest ("6%" or "104.5 kg") with no hardcoded width.
+                Each is then nudged down onto its own grid line. */}
+            <div style={{ display: 'grid', flex: 'none', height: PLOT_H, pointerEvents: 'none' }}>
               {vm.chart.yLabels.map((l, i) => (
-                // Each label rides its own grid line: the svg maps 0-330 onto
-                // the box height, so grid[i].y as a percentage lands on it.
                 <span
                   key={i}
-                  style={{ position: 'absolute', right: 8, top: `${(grid[i].y / 330) * 100}%`, transform: 'translateY(-50%)', fontSize: 10.5, color: 'rgba(242,240,230,.35)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}
+                  style={{
+                    gridArea: '1 / 1',
+                    alignSelf: 'start',
+                    justifySelf: 'end',
+                    transform: `translateY(calc(${(grid[i].y / 330).toFixed(4)} * ${PLOT_H} - 50%))`,
+                    fontSize: 10.5,
+                    color: 'rgba(242,240,230,.35)',
+                    fontVariantNumeric: 'tabular-nums',
+                    whiteSpace: 'nowrap',
+                  }}
                 >
                   {l}
                 </span>
               ))}
+            </div>
+
+            <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+              <svg viewBox="0 0 900 330" preserveAspectRatio="none" style={{ width: '100%', height: PLOT_H, display: 'block', overflow: 'visible' }}>
+                {grid.map((g, i) => (
+                  <line key={i} x1={0} y1={g.y} x2={900} y2={g.y} stroke="rgba(242,240,230,.09)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+                ))}
+                {vm.chart.series.map((s) => (
+                  <path key={s.id} d={s.d} fill="none" stroke={s.color} strokeWidth={s.w} strokeLinecap="round" strokeLinejoin="round" opacity={s.op} vectorEffect="non-scaling-stroke" style={{ transition: 'opacity .25s ease' }} />
+                ))}
+                {vm.chart.series.flatMap((s) =>
+                  s.dots.map((d, i) => (
+                    <circle
+                      key={s.id + '-d' + i}
+                      cx={d.x}
+                      cy={d.y}
+                      r={4}
+                      fill={s.color}
+                      opacity={s.op}
+                      vectorEffect="non-scaling-stroke"
+                      style={{ cursor: 'pointer' }}
+                      onMouseEnter={() => setTip({ x: (d.x / 900) * 100, y: (d.y / 330) * 100, text: `${s.name} — ${d.weight} kg`, color: s.color })}
+                      onMouseLeave={() => setTip(null)}
+                    />
+                  ))
+                )}
+              </svg>
+              {tip && <div style={chartTooltipStyle(tip.x, tip.y, tip.color)}>{tip.text}</div>}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(242,240,230,.35)' }}>
+                {vm.chart.xLabels.map((l, i) => (
+                  <span key={i}>{l}</span>
+                ))}
+              </div>
             </div>
           </div>
 

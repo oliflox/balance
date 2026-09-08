@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { gridLines, hasEntries, initialsOf, personVals } from '../lib/compute';
-import { LIME, ORANGE, PANEL, chartTooltipStyle, mainStyle, panel, primaryBtn, sectionTitle } from '../theme';
+import { LIME, ORANGE, PANEL, chartTooltipPill, chartTooltipStack, mainStyle, panel, primaryBtn, sectionTitle } from '../theme';
 
 interface Props {
   focusId: string;
@@ -103,7 +103,11 @@ export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
                 />
               ))}
             </svg>
-            {tip && <div style={chartTooltipStyle(tip.x, tip.y, tip.color)}>{tip.text}</div>}
+            {tip && (
+              <div style={chartTooltipStack(tip.x, tip.y)}>
+                <span style={chartTooltipPill(tip.color)}>{tip.text}</span>
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(242,240,230,.35)' }}>
             <span>{p.from}</span>
@@ -135,7 +139,7 @@ export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
             <div style={{ fontSize: 10.5, letterSpacing: '.16em', textTransform: 'uppercase', color: LIME }}>Série en cours</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 8 }}>
               <span style={{ fontFamily: 'Anton, sans-serif', fontSize: 46, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{p.streak}</span>
-              <span style={{ fontSize: 14, color: 'rgba(242,240,230,.6)' }}>lundis d'affilée</span>
+              <span style={{ fontSize: 14, color: 'rgba(242,240,230,.6)' }}>semaines d'affilée</span>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 16 }}>
               {p.weeks.map((w, i) => (

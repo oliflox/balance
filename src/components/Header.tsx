@@ -1,19 +1,23 @@
 import { useAuth } from '../context/AuthContext';
 import { initialsOf } from '../lib/compute';
+import { hrefFor } from '../lib/route';
+import type { Route } from '../lib/route';
 import { LIME, primaryBtn, tabStyle } from '../theme';
 import type { Member } from '../types';
 
 interface Props {
   me: Member;
-  screen: 'dash' | 'me' | 'settings';
-  onDash: () => void;
-  onMe: () => void;
+  route: Route;
   onNewWeighIn: () => void;
-  onSettings: () => void;
 }
 
-export default function Header({ me, screen, onDash, onMe, onNewWeighIn, onSettings }: Props) {
+// Real links, not buttons: the tabs can be middle-clicked, bookmarked and
+// copied, and the browser's back arrow walks them like any other page.
+const navLink = (on: boolean): React.CSSProperties => ({ ...tabStyle(on), display: 'inline-block', textDecoration: 'none' });
+
+export default function Header({ me, route, onNewWeighIn }: Props) {
   const { signOut } = useAuth();
+  const mine = hrefFor({ name: 'me' });
 
   return (
     <header
@@ -38,8 +42,8 @@ export default function Header({ me, screen, onDash, onMe, onNewWeighIn, onSetti
       </div>
 
       <nav style={{ display: 'flex', gap: 4, padding: 4, background: '#191C14', border: '1px solid rgba(242,240,230,.10)', borderRadius: 999 }}>
-        <button onClick={onDash} style={tabStyle(screen === 'dash')}>Le groupe</button>
-        <button onClick={onMe} style={tabStyle(screen === 'me')}>Mon suivi</button>
+        <a href={hrefFor({ name: 'dash' })} style={navLink(route.name === 'dash')}>Le groupe</a>
+        <a href={mine} style={navLink(route.name === 'me')}>Mon suivi</a>
       </nav>
 
       <div style={{ flex: 1, minWidth: 8 }} />
@@ -51,9 +55,11 @@ export default function Header({ me, screen, onDash, onMe, onNewWeighIn, onSetti
         <span style={{ fontSize: 17, lineHeight: 1 }}>+</span>Nouvelle pesée
       </button>
 
-      <div
-        onClick={onMe}
+      <a
+        href={mine}
         style={{
+          color: 'inherit',
+          textDecoration: 'none',
           display: 'flex',
           alignItems: 'center',
           gap: 10,
@@ -68,35 +74,59 @@ export default function Header({ me, screen, onDash, onMe, onNewWeighIn, onSetti
           {initialsOf(me.name)}
         </div>
         <span style={{ fontSize: 13.5, fontWeight: 500 }}>{me.name}</span>
-      </div>
+      </a>
 
-      <button
-        onClick={onSettings}
+      <a
+        href={hrefFor({ name: 'settings' })}
         title="Réglages"
         aria-label="Réglages"
         style={{
+          textDecoration: 'none',
           width: 38,
           height: 38,
           display: 'grid',
           placeItems: 'center',
-          background: screen === 'settings' ? 'rgba(200,255,61,.14)' : 'transparent',
-          border: `1px solid ${screen === 'settings' ? 'rgba(200,255,61,.5)' : 'rgba(242,240,230,.14)'}`,
+          background: route.name === 'settings' ? 'rgba(200,255,61,.14)' : 'transparent',
+          border: `1px solid ${route.name === 'settings' ? 'rgba(200,255,61,.5)' : 'rgba(242,240,230,.14)'}`,
           borderRadius: 999,
-          color: screen === 'settings' ? LIME : 'rgba(242,240,230,.6)',
+          color: route.name === 'settings' ? LIME : 'rgba(242,240,230,.6)',
           fontSize: 16,
           cursor: 'pointer',
         }}
       >
         ⚙
-      </button>
+      </a>
 
       <button
         onClick={() => signOut()}
         title="Se déconnecter"
-        style={{ padding: '9px 13px', background: 'transparent', border: '1px solid rgba(242,240,230,.14)', borderRadius: 999, color: 'rgba(242,240,230,.5)', fontSize: 12.5, cursor: 'pointer' }}
+        aria-label="Se déconnecter"
+        style={{
+          width: 38,
+          height: 38,
+          display: 'grid',
+          placeItems: 'center',
+          background: 'transparent',
+          border: '1px solid rgba(242,240,230,.14)',
+          borderRadius: 999,
+          color: 'rgba(242,240,230,.5)',
+          cursor: 'pointer',
+        }}
       >
-        Sortir
+        <LogoutIcon />
       </button>
     </header>
+  );
+}
+
+// Door with an arrow on its way out. Inline so it inherits the button's colour
+// and needs no icon dependency.
+function LogoutIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
   );
 }

@@ -9,6 +9,8 @@ interface AuthValue {
   loading: boolean;
   passwordRecovery: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  /** Resolves to true when Supabase wants the email confirmed before signing in. */
+  signUp: (email: string, password: string) => Promise<boolean>;
   resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
@@ -43,6 +45,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       async signIn(email, password) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+      },
+      async signUp(email, password) {
+        // Renvoyer sur l'URL courante, hash compris : sans ça, le mail de
+        // confirmation ramène à la racine et le code d'invitation est perdu.
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: window.location.href },
+        });
+        if (error) throw error;
+        // No session back means the project asks for email confirmation first.
+        return !data.session;
       },
       async resetPassword(email) {
         const { error } = await supabase.auth.resetPasswordForEmail(email);

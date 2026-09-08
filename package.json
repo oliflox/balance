@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Balance — le championnat de pesée du lundi matin. React + Supabase.",
+  "description": "Balance — le championnat de pesée de la semaine. React + Supabase.",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",

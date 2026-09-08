@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { r1, validateProfile } from '../lib/compute';
-import { ORANGE, panel, primaryBtn } from '../theme';
+import { hrefFor } from '../lib/route';
+import { LIME, ORANGE, panel, primaryBtn } from '../theme';
+import type { Room } from '../types';
 import { ColorPicker, ErrorBanner, Field, UnitInput, textInput } from './FormControls';
 
 interface Props {
@@ -10,7 +12,7 @@ interface Props {
 }
 
 export default function Settings({ onToast }: Props) {
-  const { me, updateMyProfile } = useData();
+  const { me, room, updateMyProfile } = useData();
   const { user, updatePassword, updateEmail, signOut } = useAuth();
 
   if (!me) return null;
@@ -25,6 +27,7 @@ export default function Settings({ onToast }: Props) {
       </section>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {room && <InviteCard room={room} onToast={onToast} />}
         <ProfileCard me={me} onSave={updateMyProfile} onToast={onToast} />
         <PasswordCard onSave={updatePassword} onToast={onToast} />
         <EmailCard currentEmail={user?.email ?? ''} onSave={updateEmail} onToast={onToast} />
@@ -38,6 +41,53 @@ export default function Settings({ onToast }: Props) {
         </div>
       </div>
     </main>
+  );
+}
+
+// ---- Inviter -----------------------------------------------------------------
+
+function InviteCard({ room, onToast }: { room: Room; onToast: (m: string) => void }) {
+  // The link carries the code so a friend with no account yet lands on the join
+  // form already filled in, instead of having to retype six characters.
+  const link = window.location.origin + window.location.pathname + hrefFor({ name: 'join', code: room.code });
+
+  const copy = async (text: string, said: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      onToast(said);
+    } catch {
+      onToast('Copie impossible — sélectionne le code à la main.');
+    }
+  };
+
+  return (
+    <Card title={room.name} subtitle="Ta room est privée : on n'y entre qu'avec ce code.">
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14 }}>
+        <div
+          style={{
+            padding: '14px 22px',
+            background: '#0E100C',
+            border: '1px solid rgba(200,255,61,.3)',
+            borderRadius: 14,
+            fontFamily: 'Anton, sans-serif',
+            fontSize: 30,
+            letterSpacing: '.3em',
+            color: LIME,
+            userSelect: 'all',
+          }}
+        >
+          {room.code}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+          <button onClick={() => copy(room.code, 'Code copié. Balance-le à tes potes.')} style={ghostBtn}>
+            Copier le code
+          </button>
+          <button onClick={() => copy(link, "Lien d'invitation copié.")} style={{ ...primaryBtn('pill'), padding: '11px 18px' }}>
+            Copier le lien d'invitation
+          </button>
+        </div>
+      </div>
+    </Card>
   );
 }
 

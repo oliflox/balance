@@ -15,6 +15,13 @@ export interface Entry {
   note: string;
 }
 
+export interface Room {
+  id: string;
+  name: string;
+  code: string; // the invite code — the only way into a private room
+  isMine: boolean; // true when the signed-in user created it
+}
+
 export interface Member {
   id: string;
   name: string;
@@ -22,6 +29,7 @@ export interface Member {
   start: number;
   target: number;
   roast: string;
+  joined: number; // ms timestamp the profile was created
   isMe: boolean;
   entries: Entry[]; // sorted ascending by week
 }

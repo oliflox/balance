@@ -6,7 +6,6 @@ export const INK = '#F2F0E6';
 export const LIME = '#C8FF3D';
 export const ORANGE = '#FF7A2F';
 
-export const GROUP_NAME = 'La ligue du lundi';
 export const ACCENT = LIME;
 
 export type FieldKey = 'taille' | 'hanches' | 'poitrine' | 'bras' | 'cuisse' | 'mg';
@@ -57,13 +56,24 @@ export const sectionTitle: CSSProperties = {
   textTransform: 'uppercase',
 };
 
-// Positioned bubble for chart-point hover tooltips (xPct/yPct = position in
-// the SVG's own 0-100% box, since viewBox width maps 1:1 to container width).
-export const chartTooltipStyle = (xPct: number, yPct: number, color = LIME): CSSProperties => ({
+// Chart-point hover tooltip (xPct/yPct = position in the SVG's own 0-100% box,
+// since viewBox width maps 1:1 to container width). One pill per member, stacked:
+// a merged dot covering three people shows three pills and grows upward, so the
+// bubble never lands on the dot it describes.
+export const chartTooltipStack = (xPct: number, yPct: number): CSSProperties => ({
   position: 'absolute',
   left: `${xPct}%`,
   top: `${yPct}%`,
-  transform: 'translate(-50%, -220%)',
+  transform: 'translate(-50%, calc(-100% - 12px))',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 4,
+  pointerEvents: 'none',
+  zIndex: 5,
+});
+
+export const chartTooltipPill = (color = LIME): CSSProperties => ({
   padding: '6px 10px',
   background: color,
   border: `1px solid ${color}`,
@@ -72,9 +82,7 @@ export const chartTooltipStyle = (xPct: number, yPct: number, color = LIME): CSS
   fontSize: 12,
   fontWeight: 600,
   whiteSpace: 'nowrap',
-  pointerEvents: 'none',
   boxShadow: '0 8px 20px rgba(0,0,0,.4)',
-  zIndex: 5,
 });
 
 // The lime call-to-action, in its two sizes: 'hero' is the big Anton block

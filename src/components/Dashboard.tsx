@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
 import { dashboard, gridLines, hasEntries, initialsOf } from '../lib/compute';
-import { LIME, ORANGE, PANEL, chartTooltipStyle, mainStyle, panel, primaryBtn, sectionTitle, tabStyle } from '../theme';
+import type { ChartDot } from '../lib/compute';
+import { INK, LIME, ORANGE, PANEL, chartTooltipPill, chartTooltipStack, mainStyle, panel, primaryBtn, sectionTitle, tabStyle } from '../theme';
 
 interface Props {
   onOpenPerson: (id: string) => void;
@@ -11,10 +12,10 @@ interface Props {
 const PLOT_H = 'clamp(240px, 34vw, 340px)';
 
 export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
-  const { members, activeMembers, me, reactions, react } = useData();
+  const { members, activeMembers, me, room, reactions, react } = useData();
   const [metric, setMetric] = useState<'pct' | 'kg'>('pct');
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
-  const [tip, setTip] = useState<{ x: number; y: number; text: string; color: string } | null>(null);
+  const [tip, setTip] = useState<ChartDot | null>(null);
 
   const vm = useMemo(
     () => dashboard(activeMembers, me?.id ?? '', metric, hidden, reactions),
@@ -79,7 +80,7 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
       <section style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 24, paddingBottom: 26, borderBottom: '1px solid rgba(242,240,230,.10)', animation: 'riseIn .5s ease both' }}>
         <div>
           <div style={{ fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: ORANGE }}>
-            Semaine {vm.weekNo} · pesée du lundi
+            {room ? room.name + ' · ' : ''}Semaine {vm.weekNo} · pesée de la semaine
           </div>
           <h1 style={{ fontFamily: 'Anton, sans-serif', fontSize: 'clamp(38px, 6vw, 78px)', lineHeight: 0.9, margin: '10px 0 0', textTransform: 'uppercase' }}>
             {vm.totalMoved} kg déplacés
@@ -142,24 +143,32 @@ export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
                 {vm.chart.series.map((s) => (
                   <path key={s.id} d={s.d} fill="none" stroke={s.color} strokeWidth={s.w} strokeLinecap="round" strokeLinejoin="round" opacity={s.op} vectorEffect="non-scaling-stroke" style={{ transition: 'opacity .25s ease' }} />
                 ))}
-                {vm.chart.series.flatMap((s) =>
-                  s.dots.map((d, i) => (
-                    <circle
-                      key={s.id + '-d' + i}
-                      cx={d.x}
-                      cy={d.y}
-                      r={4}
-                      fill={s.color}
-                      opacity={s.op}
-                      vectorEffect="non-scaling-stroke"
-                      style={{ cursor: 'pointer' }}
-                      onMouseEnter={() => setTip({ x: (d.x / 900) * 100, y: (d.y / 330) * 100, text: `${s.name} — ${d.weight} kg`, color: s.color })}
-                      onMouseLeave={() => setTip(null)}
-                    />
-                  ))
-                )}
+                {vm.chart.dots.map((d, i) => (
+                  <circle
+                    key={i}
+                    cx={d.x}
+                    cy={d.y}
+                    r={d.items.length > 1 ? 5.5 : 4}
+                    fill={d.items[0].color}
+                    // A ring means several members are stacked here.
+                    stroke={d.items.length > 1 ? INK : 'none'}
+                    strokeWidth={d.items.length > 1 ? 1.5 : 0}
+                    vectorEffect="non-scaling-stroke"
+                    style={{ cursor: 'pointer' }}
+                    onMouseEnter={() => setTip(d)}
+                    onMouseLeave={() => setTip(null)}
+                  />
+                ))}
               </svg>
-              {tip && <div style={chartTooltipStyle(tip.x, tip.y, tip.color)}>{tip.text}</div>}
+              {tip && (
+                <div style={chartTooltipStack((tip.x / 900) * 100, (tip.y / 330) * 100)}>
+                  {tip.items.map((it, i) => (
+                    <span key={i} style={chartTooltipPill(it.color)}>
+                      {it.name} — {it.weight} kg
+                    </span>
+                  ))}
+                </div>
+              )}
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10.5, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(242,240,230,.35)' }}>
                 {vm.chart.xLabels.map((l, i) => (
                   <span key={i}>{l}</span>

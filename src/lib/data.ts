@@ -1,15 +1,25 @@
 import { supabase } from '../supabaseClient';
+import { calWeek } from './compute';
 import type { FieldKey } from '../theme';
-import type { Entry, Member, ReactionIndex } from '../types';
+import type { Entry, Member, ReactionIndex, Room } from '../types';
+
+interface RoomRow {
+  id: string;
+  name: string;
+  code: string;
+  owner_id: string;
+}
 
 interface ProfileRow {
   id: string;
   user_id: string | null;
+  room_id: string;
   name: string;
   color: string;
   start_weight: number | string;
   target: number | string;
   roast: string | null;
+  created_at: string | null;
 }
 
 interface EntryRow {
@@ -37,16 +47,23 @@ const num = (v: number | string | null | undefined): number | null =>
   v == null || v === '' ? null : Number(v);
 
 interface FetchResult {
+  room: Room | null;
   members: Member[];
   reactions: ReactionIndex;
 }
 
+// No room filter anywhere below on purpose: row-level security only ever hands
+// back the signed-in member's own room, so `select *` is already scoped. A room
+// the user owns but hasn't joined yet also comes back — that's the half-finished
+// signup we need to be able to resume.
 export async function fetchAll(userId: string | null): Promise<FetchResult> {
-  const [profilesRes, entriesRes, reactsRes] = await Promise.all([
+  const [roomsRes, profilesRes, entriesRes, reactsRes] = await Promise.all([
+    supabase.from('balance_rooms').select('id,name,code,owner_id'),
     supabase.from('balance_profiles').select('*'),
     supabase.from('balance_entries').select('*').order('week', { ascending: true }),
     supabase.from('balance_reactions').select('entry_id,user_id,emoji'),
   ]);
+  if (roomsRes.error) throw roomsRes.error;
   if (profilesRes.error) throw profilesRes.error;
   if (entriesRes.error) throw entriesRes.error;
   if (reactsRes.error) throw reactsRes.error;
@@ -57,11 +74,14 @@ export async function fetchAll(userId: string | null): Promise<FetchResult> {
 
   const byProfile: Record<string, Entry[]> = {};
   for (const row of entryRows) {
+    const date = new Date(row.date).getTime();
     const e: Entry = {
       id: row.id,
       profileId: row.profile_id,
-      week: row.week,
-      date: new Date(row.date).getTime(),
+      // The stored column is only there for the one-per-week unique key; the
+      // week a weigh-in belongs to is always the one its date falls in.
+      week: calWeek(date),
+      date,
       weight: Number(row.weight),
       taille: num(row.taille),
       hanches: num(row.hanches),
@@ -74,16 +94,22 @@ export async function fetchAll(userId: string | null): Promise<FetchResult> {
     (byProfile[row.profile_id] ??= []).push(e);
   }
 
-  const members: Member[] = profiles.map((p) => ({
-    id: p.id,
-    name: p.name,
-    color: p.color,
-    start: Number(p.start_weight),
-    target: Number(p.target),
-    roast: p.roast ?? '',
-    isMe: !!userId && p.user_id === userId,
-    entries: (byProfile[p.id] ?? []).sort((a, b) => a.week - b.week),
-  }));
+  const members: Member[] = profiles.map((p) => {
+    const entries = (byProfile[p.id] ?? []).sort((a, b) => a.week - b.week);
+    return {
+      id: p.id,
+      name: p.name,
+      color: p.color,
+      start: Number(p.start_weight),
+      target: Number(p.target),
+      roast: p.roast ?? '',
+      // How many weigh-ins a member owes is counted from the day they joined.
+      // Older rows predate the column, so their first weigh-in stands in.
+      joined: p.created_at ? Date.parse(p.created_at) : entries[0]?.date ?? Date.now(),
+      isMe: !!userId && p.user_id === userId,
+      entries,
+    };
+  });
 
   const reactions: ReactionIndex = {};
   for (const r of reactRows) {
@@ -93,10 +119,38 @@ export async function fetchAll(userId: string | null): Promise<FetchResult> {
     if (userId && r.user_id === userId) cell.mine = true;
   }
 
-  return { members, reactions };
+  const roomRow = ((roomsRes.data ?? []) as RoomRow[])[0];
+  const room: Room | null = roomRow
+    ? { id: roomRow.id, name: roomRow.name, code: roomRow.code, isMine: roomRow.owner_id === userId }
+    : null;
+
+  return { room, members, reactions };
+}
+
+// ---- Rooms -------------------------------------------------------------------
+
+export async function createRoom(userId: string, name: string): Promise<string> {
+  const { data, error } = await supabase
+    .from('balance_rooms')
+    .insert({ name: name.trim(), owner_id: userId })
+    .select('id')
+    .single();
+  if (error) throw error;
+  return data.id as string;
+}
+
+// A code is the only handle on a room you are not a member of, so the lookup
+// goes through a security-definer function rather than a readable table.
+export async function roomByCode(code: string): Promise<{ id: string; name: string }> {
+  const { data, error } = await supabase.rpc('balance_room_by_code', { p_code: code });
+  if (error) throw error;
+  const row = (Array.isArray(data) ? data[0] : data) as { id: string; name: string } | undefined;
+  if (!row) throw new Error('Aucune room avec ce code. Vérifie auprès de qui t’a invité.');
+  return row;
 }
 
 export interface NewProfile {
+  roomId: string;
   name: string;
   color: string;
   start: number;
@@ -106,13 +160,15 @@ export interface NewProfile {
 export async function createProfile(userId: string, p: NewProfile): Promise<void> {
   const { error } = await supabase.from('balance_profiles').insert({
     user_id: userId,
+    room_id: p.roomId,
     name: p.name,
     color: p.color,
     start_weight: p.start,
     target: p.target,
     is_demo: false,
   });
-  if (error) throw error;
+  // 23505 = one profile per user: they are already in a room.
+  if (error) throw error.code === '23505' ? new Error('Tu es déjà membre d’une room.') : error;
 }
 
 export interface ProfileUpdate {
@@ -134,7 +190,6 @@ export async function updateProfile(profileId: string, fields: ProfileUpdate): P
 }
 
 export interface NewWeighIn {
-  week: number;
   weight: number;
   note: string;
   measures: Partial<Record<FieldKey, number | null>>;
@@ -143,7 +198,7 @@ export interface NewWeighIn {
 export async function addWeighIn(profileId: string, w: NewWeighIn): Promise<void> {
   const { error } = await supabase.from('balance_entries').insert({
     profile_id: profileId,
-    week: w.week,
+    week: calWeek(Date.now()),
     date: new Date().toISOString().slice(0, 10),
     weight: w.weight,
     taille: w.measures.taille ?? null,
@@ -154,7 +209,9 @@ export async function addWeighIn(profileId: string, w: NewWeighIn): Promise<void
     mg: w.measures.mg ?? null,
     note: w.note,
   });
-  if (error) throw error;
+  // 23505 = the (profile_id, week) unique key: someone already weighed in this
+  // week, most likely from another tab while this one held stale data.
+  if (error) throw error.code === '23505' ? new Error('Tu t’es déjà pesé cette semaine.') : error;
 }
 
 export async function toggleReaction(entryId: string, userId: string, emoji: string, mine: boolean): Promise<void> {

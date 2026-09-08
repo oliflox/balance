@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from './context/AuthContext';
 import { DataProvider, useData } from './context/DataContext';
+import { useRoute } from './lib/route';
 import { INK } from './theme';
 import Login from './components/Login';
 import Onboarding from './components/Onboarding';
@@ -10,6 +11,7 @@ import MonSuivi from './components/MonSuivi';
 import WeighInModal from './components/WeighInModal';
 import Settings from './components/Settings';
 import Toast from './components/Toast';
+import NotFound from './components/NotFound';
 import Spinner from './components/Spinner';
 
 const pageStyle: React.CSSProperties = {
@@ -51,15 +53,20 @@ export default function App() {
 function AuthedApp() {
   const { passwordRecovery } = useAuth();
   const { loading, error, me } = useData();
-  const [screen, setScreen] = useState<'dash' | 'me' | 'settings'>('dash');
-  const [focusId, setFocusId] = useState<string | null>(null);
+  const [route, go] = useRoute();
   const [modalOpen, setModalOpen] = useState(false);
   const [toast, setToast] = useState('');
   const toastTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
-    if (passwordRecovery) setScreen('settings');
-  }, [passwordRecovery]);
+    // Already in a room: an invite link has nothing left to offer, show the league.
+    // Only once `me` exists — otherwise this would wipe the code out of the URL
+    // before onboarding gets to read it.
+    if (me && route.name === 'join') go({ name: 'dash' });
+    if (passwordRecovery) go({ name: 'settings' });
+    // go() only ever writes location.hash; re-running on its identity would loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [passwordRecovery, route.name, me]);
 
   if (loading) {
     return (
@@ -83,15 +90,6 @@ function AuthedApp() {
   // Signed in but no competitor profile yet → onboarding.
   if (!me) return <Onboarding />;
 
-  const openPerson = (id: string) => {
-    setFocusId(id);
-    setScreen('me');
-  };
-  const goMe = () => {
-    setFocusId(me.id);
-    setScreen('me');
-  };
-
   const showToast = (msg: string) => {
     setToast(msg);
     window.clearTimeout(toastTimer.current);
@@ -100,18 +98,14 @@ function AuthedApp() {
 
   return (
     <div>
-      <Header
-        me={me}
-        screen={screen}
-        onDash={() => setScreen('dash')}
-        onMe={goMe}
-        onNewWeighIn={() => setModalOpen(true)}
-        onSettings={() => setScreen('settings')}
-      />
+      <Header me={me} route={route} onNewWeighIn={() => setModalOpen(true)} />
 
-      {screen === 'dash' && <Dashboard onOpenPerson={openPerson} onNewWeighIn={() => setModalOpen(true)} />}
-      {screen === 'me' && <MonSuivi focusId={focusId ?? me.id} onNewWeighIn={() => setModalOpen(true)} />}
-      {screen === 'settings' && <Settings onToast={showToast} />}
+      {route.name === 'dash' && (
+        <Dashboard onOpenPerson={(id) => go({ name: 'me', id })} onNewWeighIn={() => setModalOpen(true)} />
+      )}
+      {route.name === 'me' && <MonSuivi focusId={route.id ?? me.id} onNewWeighIn={() => setModalOpen(true)} />}
+      {route.name === 'settings' && <Settings onToast={showToast} />}
+      {route.name === '404' && <NotFound />}
 
       {modalOpen && (
         <WeighInModal

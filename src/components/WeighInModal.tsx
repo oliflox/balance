@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
-import { dir, fmtDate, last, r1 } from '../lib/compute';
+import { calWeek, dir, fmtDate, last, r1 } from '../lib/compute';
 import { FIELDS, LIME, ORANGE, primaryBtn } from '../theme';
 import type { FieldKey } from '../theme';
 import type { WeighInForm } from '../types';
@@ -12,11 +12,14 @@ interface Props {
 }
 
 export default function WeighInModal({ onClose, onSaved }: Props) {
-  const { me, groupMaxWeek, saveWeighIn } = useData();
+  const { me, saveWeighIn } = useData();
 
   const prevEntry = me && me.entries.length ? last(me) : null;
   const prevWeight = prevEntry ? prevEntry.weight : me?.start ?? 0;
-  const nextWeek = prevEntry ? prevEntry.week + 1 : groupMaxWeek;
+  // One weigh-in per calendar week. The database has the last word (unique key
+  // on profile + week); this only spares the member a pointless form.
+  const thisWeek = calWeek(Date.now());
+  const alreadyWeighed = !!me?.entries.some((e) => e.week === thisWeek);
   // Pre-fill a small step the member's way, whichever way that is.
   const goalDir = me ? dir(me) : -1;
 
@@ -59,7 +62,7 @@ export default function WeighInModal({ onClose, onSaved }: Props) {
       measures[f.key] = isNaN(v) ? (prevEntry ? prevEntry[f.key] : null) : r1(v);
     }
     try {
-      await saveWeighIn({ week: nextWeek, weight: r1(w), note: form.note ?? '', measures });
+      await saveWeighIn({ weight: r1(w), note: form.note ?? '', measures });
       const d = r1(w - prevWeight);
       onSaved(
         'Pesée publiée : ' + (d > 0 ? '+' : '') + d + ' kg. ' +
@@ -104,11 +107,15 @@ export default function WeighInModal({ onClose, onSaved }: Props) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
           <div>
             <div style={{ fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: LIME }}>
-              Semaine {nextWeek + 1} · {nextDateLong}
+              Semaine {thisWeek + 1} · {nextDateLong}
             </div>
-            <h2 style={{ fontFamily: 'Anton, sans-serif', fontSize: 'clamp(28px, 4vw, 38px)', margin: '10px 0 0', textTransform: 'uppercase' }}>Nouvelle pesée</h2>
+            <h2 style={{ fontFamily: 'Anton, sans-serif', fontSize: 'clamp(28px, 4vw, 38px)', margin: '10px 0 0', textTransform: 'uppercase' }}>
+              {alreadyWeighed ? 'Déjà fait' : 'Nouvelle pesée'}
+            </h2>
             <p style={{ margin: '8px 0 0', fontSize: 13.5, color: 'rgba(242,240,230,.5)' }}>
-              À jeun, sans chaussures, et on ne triche pas — {me?.name}.
+              {alreadyWeighed
+                ? 'Une seule pesée par semaine. Rendez-vous la semaine prochaine — ' + me?.name + '.'
+                : 'À jeun, sans chaussures, et on ne triche pas — ' + me?.name + '.'}
             </p>
           </div>
           <button
@@ -119,58 +126,79 @@ export default function WeighInModal({ onClose, onSaved }: Props) {
           </button>
         </div>
 
-        {/* Weight stepper */}
-        <div style={{ marginTop: 24, padding: 18, background: '#0E100C', border: '1px solid rgba(200,255,61,.22)', borderRadius: 18 }}>
-          <label style={{ display: 'block', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(242,240,230,.5)', marginBottom: 10 }}>
-            Poids (kg) · l'info qui fâche
-          </label>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button onClick={() => bumpWeight(-0.1)} style={stepBtn}>−</button>
-            <input
-              type="number"
-              step="0.1"
-              value={form.weight}
-              onChange={(e) => setField('weight', e.target.value)}
-              style={{ flex: 1, minWidth: 0, padding: '12px 14px', background: 'transparent', border: 'none', color: '#F2F0E6', fontFamily: 'Anton, sans-serif', fontSize: 40, textAlign: 'center', outline: 'none', fontVariantNumeric: 'tabular-nums' }}
-            />
-            <button onClick={() => bumpWeight(0.1)} style={stepBtn}>+</button>
+        {alreadyWeighed ? (
+          <>
+            <div style={{ marginTop: 24, padding: 18, background: '#0E100C', border: '1px solid rgba(242,240,230,.14)', borderRadius: 18, textAlign: 'center' }}>
+              <div style={{ fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(242,240,230,.5)' }}>
+                Ta pesée de la semaine
+              </div>
+              <div style={{ fontFamily: 'Anton, sans-serif', fontSize: 40, marginTop: 8, fontVariantNumeric: 'tabular-nums' }}>
+                {prevEntry?.weight} kg
+              </div>
+              <div style={{ fontSize: 13, color: 'rgba(242,240,230,.5)' }}>
+                enregistrée le {prevEntry && fmtDate(prevEntry.date, true)}
+              </div>
+            </div>
+            <button onClick={onClose} style={{ ...primaryBtn('hero'), width: '100%', marginTop: 24 }}>
+              Fermer
+            </button>
+          </>
+        ) : (
+          <>
+          {/* Weight stepper */}
+          <div style={{ marginTop: 24, padding: 18, background: '#0E100C', border: '1px solid rgba(200,255,61,.22)', borderRadius: 18 }}>
+            <label style={{ display: 'block', fontSize: 11, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(242,240,230,.5)', marginBottom: 10 }}>
+              Poids (kg) · l'info qui fâche
+            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <button onClick={() => bumpWeight(-0.1)} style={stepBtn}>−</button>
+              <input
+                type="number"
+                step="0.1"
+                value={form.weight}
+                onChange={(e) => setField('weight', e.target.value)}
+                style={{ flex: 1, minWidth: 0, padding: '12px 14px', background: 'transparent', border: 'none', color: '#F2F0E6', fontFamily: 'Anton, sans-serif', fontSize: 40, textAlign: 'center', outline: 'none', fontVariantNumeric: 'tabular-nums' }}
+              />
+              <button onClick={() => bumpWeight(0.1)} style={stepBtn}>+</button>
+            </div>
+            <div style={{ marginTop: 10, textAlign: 'center', fontSize: 13, color: diffColor, fontVariantNumeric: 'tabular-nums' }}>{diffText}</div>
           </div>
-          <div style={{ marginTop: 10, textAlign: 'center', fontSize: 13, color: diffColor, fontVariantNumeric: 'tabular-nums' }}>{diffText}</div>
-        </div>
 
-        {/* Measurements */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginTop: 16 }}>
-          {FIELDS.map((f) => (
-            <Field key={f.key} label={f.label}>
-              <UnitInput value={form[f.key] ?? ''} onChange={(v) => setField(f.key, v)} unit={f.unit} />
-            </Field>
-          ))}
-        </div>
+          {/* Measurements */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginTop: 16 }}>
+            {FIELDS.map((f) => (
+              <Field key={f.key} label={f.label}>
+                <UnitInput value={form[f.key] ?? ''} onChange={(v) => setField(f.key, v)} unit={f.unit} />
+              </Field>
+            ))}
+          </div>
 
-        <Field label="Un mot pour le groupe (optionnel)" style={{ marginTop: 16 }}>
-          <input
-            type="text"
-            value={form.note}
-            onChange={(e) => setField('note', e.target.value)}
-            placeholder="Raclette samedi, assumé."
-            style={textInput}
-          />
-        </Field>
+          <Field label="Un mot pour le groupe (optionnel)" style={{ marginTop: 16 }}>
+            <input
+              type="text"
+              value={form.note}
+              onChange={(e) => setField('note', e.target.value)}
+              placeholder="Raclette samedi, assumé."
+              style={textInput}
+            />
+          </Field>
 
-        {err && <ErrorBanner>{err}</ErrorBanner>}
+          {err && <ErrorBanner>{err}</ErrorBanner>}
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 24 }}>
-          <button
-            onClick={save}
-            disabled={busy}
-            style={{ ...primaryBtn('hero', busy), flex: 1, minWidth: 180 }}
-          >
-            {busy ? 'Publication…' : 'Publier la pesée'}
-          </button>
-          <button onClick={onClose} style={{ padding: '16px 22px', background: 'transparent', border: '1px solid rgba(242,240,230,.16)', borderRadius: 14, color: 'rgba(242,240,230,.6)', fontSize: 14, cursor: 'pointer' }}>
-            Annuler
-          </button>
-        </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 24 }}>
+            <button
+              onClick={save}
+              disabled={busy}
+              style={{ ...primaryBtn('hero', busy), flex: 1, minWidth: 180 }}
+            >
+              {busy ? 'Publication…' : 'Publier la pesée'}
+            </button>
+            <button onClick={onClose} style={{ padding: '16px 22px', background: 'transparent', border: '1px solid rgba(242,240,230,.16)', borderRadius: 14, color: 'rgba(242,240,230,.6)', fontSize: 14, cursor: 'pointer' }}>
+              Annuler
+            </button>
+          </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -192,7 +220,7 @@ function diffInfo(diff: number | null, goalDir: number): { diffText: string; dif
   if (diff === null) return { diffText: 'Entre ton poids pour voir les dégâts.', diffColor: 'rgba(242,240,230,.45)' };
   if (diff === 0) return { diffText: 'Exactement comme la semaine dernière. Suspect.', diffColor: LIME };
   const kg = Math.abs(diff);
-  const side = diff < 0 ? ' kg de moins que lundi dernier' : ' kg de plus que lundi dernier';
+  const side = diff < 0 ? ' kg de moins que la semaine dernière' : ' kg de plus que la semaine dernière';
   return diff * goalDir > 0
     ? { diffText: kg + side + '. Joli.', diffColor: LIME }
     : { diffText: kg + side + '. On ne juge pas (si).', diffColor: ORANGE };

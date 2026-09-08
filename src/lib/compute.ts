@@ -30,6 +30,12 @@ export function pctProgress(m: Member): number {
 // Signed by direction: > 0 means the week went the way this member wants.
 export const progressOf = (m: Member, delta: number) => delta * dir(m);
 
+// The week a member entered the league: their profile's creation, or their first
+// weigh-in if that somehow came first. Everything that counts missed weeks starts
+// here, so joining mid-contest never counts as weeks skipped.
+export const joinWeekOf = (m: Member) => Math.min(calWeek(m.joined), ...m.entries.map((e) => e.week));
+export const dueWeeks = (m: Member, nowWeek: number) => Math.max(0, nowWeek - joinWeekOf(m) + 1);
+
 export const reachedGoal = (m: Member) =>
   dir(m) < 0 ? last(m).weight <= m.target : last(m).weight >= m.target;
 
@@ -54,17 +60,57 @@ interface Series {
   d: string;
   w: number;
   op: number;
-  dots: { x: number; y: number; weight: number }[];
 }
 
-// Monday of the week containing BASE_DATE — the group weighs in on Mondays,
-// so calendar weeks are bucketed Mon-Sun rather than from BASE_DATE itself.
-const WEEK_ANCHOR = BASE_DATE - ((new Date(BASE_DATE).getUTCDay() + 6) % 7) * 86400000;
-const calWeek = (date: number) => Math.floor((date - WEEK_ANCHOR) / WEEK_MS);
+export interface ChartDot {
+  x: number;
+  y: number;
+  items: { name: string; color: string; weight: number }[];
+}
 
-export function groupChart(members: Member[], metric: 'pct' | 'kg', hidden: Record<string, boolean>, meId: string) {
+// Two members level with each other on the same week draw one dot right on top
+// of the other, and only the last one painted can be hovered. Cluster them into
+// a single dot instead, and let the tooltip list everyone hiding underneath.
+const DOT_MERGE_Y = 9; // ≈ two dot radii, in viewBox units
+
+function mergeDots(raw: { x: number; y: number; name: string; color: string; weight: number }[]): ChartDot[] {
+  const columns = new Map<number, typeof raw>();
+  for (const p of raw) (columns.get(p.x) ?? columns.set(p.x, []).get(p.x)!).push(p);
+
+  const out: ChartDot[] = [];
+  for (const column of columns.values()) {
+    let anchor = -Infinity;
+    let ys: number[] = [];
+    let dot: ChartDot | null = null;
+    for (const p of column.sort((a, b) => a.y - b.y)) {
+      if (dot && p.y - anchor <= DOT_MERGE_Y) {
+        ys.push(p.y);
+      } else {
+        if (dot) dot.y = ys.reduce((a, b) => a + b, 0) / ys.length;
+        anchor = p.y;
+        ys = [p.y];
+        dot = { x: p.x, y: p.y, items: [] };
+        out.push(dot);
+      }
+      dot.items.push({ name: p.name, color: p.color, weight: p.weight });
+    }
+    // The dot sits at the middle of its cluster, not on whichever member came first.
+    if (dot) dot.y = ys.reduce((a, b) => a + b, 0) / ys.length;
+  }
+  return out;
+}
+
+// Monday of the week containing BASE_DATE. Weeks run Mon-Sun: one weigh-in per
+// calendar week, whichever day it lands on. This is the app's only week number —
+// Entry.week is derived from the weigh-in date, never counted per member.
+const WEEK_ANCHOR = BASE_DATE - ((new Date(BASE_DATE).getUTCDay() + 6) % 7) * 86400000;
+export const calWeek = (date: number) => Math.floor((date - WEEK_ANCHOR) / WEEK_MS);
+
+export function groupChart(members: Member[], metric: 'pct' | 'kg', hidden: Record<string, boolean>, meId: string, nowWeek: number) {
   const W = 900, H = 330, PAD = 14;
-  const maxWeek = members.length ? Math.max(...members.map((m) => calWeek(last(m).date))) : 0;
+  // Runs to the current week even if nobody has weighed in yet: a silent week
+  // should show as a gap at the right edge, not vanish from the axis.
+  const maxWeek = Math.max(nowWeek, ...members.map((m) => last(m).week));
   let lo: number, hi: number;
   if (metric === 'pct') {
     lo = -2;
@@ -77,12 +123,16 @@ export function groupChart(members: Member[], metric: 'pct' | 'kg', hidden: Reco
   const x = (wk: number) => (wk / Math.max(1, maxWeek)) * (W - 8) + 4;
   const y = (v: number) => H - PAD - ((v - lo) / (hi - lo)) * (H - PAD * 2);
 
+  // Hidden members keep their ghost line but drop out of the dots entirely:
+  // no point offering a tooltip for someone the reader just switched off.
+  const raw: Parameters<typeof mergeDots>[0] = [];
   const series: Series[] = members.map((m) => {
-    const pts = m.entries.map((e) => [x(calWeek(e.date)), y(metric === 'pct' ? ((e.weight - m.start) / m.start) * 100 * dir(m) : e.weight)]);
+    const pts = m.entries.map((e) => [x(e.week), y(metric === 'pct' ? ((e.weight - m.start) / m.start) * 100 * dir(m) : e.weight)]);
     const off = !!hidden[m.id];
-    const dots = m.entries.map((e, i) => ({ x: pts[i][0], y: pts[i][1], weight: e.weight }));
-    return { id: m.id, name: m.name, color: m.color, d: path(pts), w: m.id === meId ? 3.5 : 2, op: off ? 0.06 : 1, dots };
+    if (!off) m.entries.forEach((e, i) => raw.push({ x: pts[i][0], y: pts[i][1], name: m.name, color: m.color, weight: e.weight }));
+    return { id: m.id, name: m.name, color: m.color, d: path(pts), w: m.id === meId ? 3.5 : 2, op: off ? 0.06 : 1 };
   });
+  const dots = mergeDots(raw);
 
   const yLabels = Array.from({ length: 5 }, (_, i) => {
     const v = hi - ((hi - lo) * i) / 4;
@@ -92,7 +142,7 @@ export function groupChart(members: Member[], metric: 'pct' | 'kg', hidden: Reco
   // One label per week: they naturally dedupe and pack closer together
   // (space-between layout) as the contest runs for more weeks.
   const xLabels = Array.from({ length: maxWeek + 1 }, (_, i) => String(i + 1));
-  return { series, yLabels, xLabels, maxWeek };
+  return { series, dots, yLabels, xLabels, maxWeek };
 }
 
 export const gridLines = () => [0, 1, 2, 3, 4].map((i) => ({ y: 14 + (i * (330 - 28)) / 4, y2: 16 + (i * (300 - 32)) / 4 }));
@@ -222,10 +272,12 @@ export interface Trophy {
 // Everything is derived from the entries: no trophy is stored anywhere.
 // "Due" weeks start at each member's own first weigh-in, so people who joined
 // in week 2 or 3 are never blamed for the weeks before they existed.
-export function buildTrophies(members: Member[], maxWeek: number): Trophy[] {
+// nowWeek is the week the league is currently in: the yardstick for both the
+// missed-week count and the trophies that expire two weeks after the fact.
+export function buildTrophies(members: Member[], nowWeek: number): Trophy[] {
   const stats = members.filter(hasEntries).map((m) => {
     const es = m.entries;
-    const weeks = [...new Set(es.map((e) => calWeek(e.date)))].sort((a, b) => a - b);
+    const weeks = [...new Set(es.map((e) => e.week))].sort((a, b) => a - b);
     let run = 1, bestStreak = 1;
     for (let i = 1; i < weeks.length; i++) {
       run = weeks[i] - weeks[i - 1] === 1 ? run + 1 : 1;
@@ -239,9 +291,21 @@ export function buildTrophies(members: Member[], maxWeek: number): Trophy[] {
       if (p > forward) forward = p;
       if (p < backward) backward = p;
     }
-    // Weigh-in dates are date-only columns parsed as UTC midnight, so UTC day
-    // is the real day. calWeek() buckets Mon-Sun, hence Sunday = last minute.
-    const days = es.map((e) => new Date(e.date).getUTCDay());
+    // A break in the tracking only becomes a fact once they weigh in again:
+    // skipping this week could still be a late weigh-in. comebackWeek is that
+    // reappearance, and it is what the two-week expiry counts from — being
+    // diligent since does not erase it early.
+    let comebackWeek = -1, gap = 0;
+    for (let i = 1; i < weeks.length; i++) {
+      if (weeks[i] - weeks[i - 1] > 1) {
+        comebackWeek = weeks[i];
+        gap = weeks[i] - weeks[i - 1] - 1;
+      }
+    }
+    // Dates are date-only columns parsed as UTC midnight, so UTC day is the real
+    // day, and weeks bucket Mon-Sun — Sunday is the last minute of the week.
+    const sundayWeeks = es.filter((e) => new Date(e.date).getUTCDay() === 0).map((e) => e.week);
+    const recent = (week: number) => week >= 0 && nowWeek - week < 2;
     const taille = es.map((e) => e.taille).filter((v): v is number => v != null);
     const w3 = es.slice(-3).map((e) => e.weight);
     return {
@@ -249,13 +313,13 @@ export function buildTrophies(members: Member[], maxWeek: number): Trophy[] {
       gaining: dir(m) > 0,
       pct: pctProgress(m),
       count: es.length,
-      joinWeek: weeks[0],
-      missed: maxWeek - weeks[0] + 1 - weeks.length,
+      missed: dueWeeks(m, nowWeek) - weeks.length,
       bestStreak,
       forward: r1(forward),
       backward: r1(backward),
-      late: days.filter((d) => d !== 1).length,
-      sundays: days.filter((d) => d === 0).length,
+      fresh: recent(joinWeekOf(m)),
+      gap: recent(comebackWeek) ? gap : 0,
+      lateSunday: sundayWeeks.some(recent),
       tailleLost: taille.length > 1 ? r1(taille[0] - taille[taille.length - 1]) : 0,
       flat: w3.length === 3 && Math.max(...w3) - Math.min(...w3) <= 0.3,
       reached: reachedGoal(m),
@@ -284,7 +348,6 @@ export function buildTrophies(members: Member[], maxWeek: number): Trophy[] {
   const metro = top((s) => s.bestStreak - 1);
   if (metro) add('🔗', 'Métronome', metro.m.name, metro.bestStreak + ' semaines d’affilée sans faillir');
 
-  add('⏰', 'Pile à l’heure', all((s) => s.count > 1 && s.late === 0), 'Toujours le lundi. Jamais un jour de plus.');
   add('💯', 'Sans faute', all((s) => s.count > 1 && s.missed === 0), 'Zéro semaine sautée depuis son arrivée');
 
   const pilier = top((s) => s.count);
@@ -293,27 +356,30 @@ export function buildTrophies(members: Member[], maxWeek: number): Trophy[] {
   const ruban = top((s) => s.tailleLost);
   if (ruban) add('📏', 'Le mètre ruban', ruban.m.name, '−' + ruban.tailleLost + ' cm de tour de taille');
 
-  add('🌱', 'Petit nouveau', all((s) => s.joinWeek > 0), 'Arrivé après le coup d’envoi, et ça se voit');
+  add('🌱', 'Petit nouveau', all((s) => s.fresh), 'Arrivé il y a moins de deux semaines');
 
-  const slow = top((s) => s.late);
-  if (slow) add('🐌', 'Le retardataire', slow.m.name, slow.late + ' pesées un autre jour que lundi', 'bad');
-
-  add('👻', 'Le fantôme', all((s) => s.missed > 0), 'Au moins une semaine portée disparue', 'bad');
+  add('👻', 'Le fantôme', all((s) => s.gap > 0), 'A sauté une semaine puis refait surface. On l’a vu.', 'bad');
 
   const yoyo = top((s) => -s.backward);
   if (yoyo) add('🎢', 'Effet yoyo', yoyo.m.name, (yoyo.gaining ? '−' : '+') + -yoyo.backward + ' kg dans le mauvais sens', 'bad');
 
   add('🛋️', 'Le plateau', all((s) => s.flat), 'Trois pesées, la même balance, aucun suspense', 'bad');
-  add('🌙', 'Rattrapage du dimanche', all((s) => s.sundays > 0), 'Pesée in extremis avant la fin de semaine', 'bad');
+  add('🌙', 'Rattrapage du dimanche', all((s) => s.lateSunday), 'Pesée in extremis avant la fin de semaine', 'bad');
 
   return out;
 }
 
 // ---- Dashboard ---------------------------------------------------------------
 
-export function dashboard(members: Member[], meId: string, metric: 'pct' | 'kg', hidden: Record<string, boolean>, reactions: ReactionIndex) {
-  const chart = groupChart(members, metric, hidden, meId);
-  const maxWeek = chart.maxWeek;
+export function dashboard(
+  members: Member[],
+  meId: string,
+  metric: 'pct' | 'kg',
+  hidden: Record<string, boolean>,
+  reactions: ReactionIndex,
+  nowWeek = calWeek(Date.now())
+) {
+  const chart = groupChart(members, metric, hidden, meId, nowWeek);
   const sorted = members.slice().sort((a, b) => pctProgress(b) - pctProgress(a));
   const maxPct = (sorted.length ? pctProgress(sorted[0]) : 0) || 1;
 
@@ -359,9 +425,14 @@ export function dashboard(members: Member[], meId: string, metric: 'pct' | 'kg',
       };
     });
 
+  // Assiduous = not one week missed since their own first weigh-in.
+  const assidu = (m: Member) => new Set(m.entries.map((e) => e.week)).size === dueWeeks(m, nowWeek);
+
   const ranking = sorted.map((m, i) => {
     const pct = pctProgress(m);
-    const { d, prog } = deltas.find((x) => x.m.id === m.id)!;
+    // Total moved since day one — the kilos behind the percentage, not the
+    // last week's swing.
+    const moved = r1(last(m).weight - m.start);
     return {
       id: m.id,
       rank: i + 1,
@@ -372,9 +443,9 @@ export function dashboard(members: Member[], meId: string, metric: 'pct' | 'kg',
       weight: last(m).weight,
       pct: r1(pct) + '%',
       pctColor: pct > 0 ? ACCENT : ORANGE,
-      delta: (d > 0 ? '+' : '') + d + ' kg',
-      deltaColor: prog >= 0 ? 'rgba(242,240,230,.5)' : ORANGE,
-      badge: i === 0 ? 'Leader' : m.entries.length === maxWeek + 1 ? 'Assidu' : '',
+      delta: (moved > 0 ? '+' : '') + moved + ' kg',
+      deltaColor: moved * dir(m) >= 0 ? 'rgba(242,240,230,.5)' : ORANGE,
+      badge: i === 0 ? 'Leader' : assidu(m) ? 'Assidu' : '',
       roast: m.roast,
       barWidth: Math.max(3, (pct / maxPct) * 100),
       isMe: m.id === meId,
@@ -389,14 +460,15 @@ export function dashboard(members: Member[], meId: string, metric: 'pct' | 'kg',
     hidden: !!hidden[m.id],
   }));
 
-  const trophies = buildTrophies(members, maxWeek);
+  const trophies = buildTrophies(members, nowWeek);
 
   return {
     chart,
-    weekNo: maxWeek + 1,
+    weekNo: nowWeek + 1,
     totalMoved,
     totalEntries,
-    totalPossible: members.length * (maxWeek + 1),
+    // Not members × weeks: someone who joined last week only owes one weigh-in.
+    totalPossible: members.reduce((a, m) => a + dueWeeks(m, nowWeek), 0),
     bestWeekName: best ? best.m.name : '—',
     bestWeekDelta: best ? (best.d > 0 ? '+' : '') + best.d : '0',
     worstName: worst ? worst.m.name : '—',

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { fetchPublicStats } from '../lib/data';
 import type { PublicStats } from '../lib/data';
-import { GROUP_NAME, LIME, primaryBtn } from '../theme';
+import { useRoute } from '../lib/route';
+import { LIME, primaryBtn, tabStyle } from '../theme';
 import { ErrorBanner } from './FormControls';
 
 const inputBase: React.CSSProperties = {
@@ -22,14 +23,25 @@ function AuthInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className="auth-input" style={inputBase} />;
 }
 
+const STEPS = [
+  { n: '01', title: 'Ouvre ta room', text: 'Un championnat privé, rien qu’à toi. Tu lui donnes un nom, il te rend un code.' },
+  { n: '02', title: 'Invite tes potes', text: 'Le code, ou le lien. Personne d’autre ne voit vos poids, vos courbes ni vos excuses.' },
+  { n: '03', title: 'Une pesée par semaine', text: 'Chacun son objectif, à la hausse comme à la baisse. Le classement fait le reste.' },
+];
+
 export default function Login() {
-  const { signIn, resetPassword } = useAuth();
+  const { signIn, signUp, resetPassword } = useAuth();
+  const [route] = useRoute();
+  const invited = route.name === 'join';
+
+  // Someone arriving on an invite link has no account yet, nine times out of ten.
+  const [mode, setMode] = useState<'in' | 'up'>(invited ? 'up' : 'in');
   const [email, setEmail] = useState('');
   const [pwd, setPwd] = useState('');
   const [err, setErr] = useState('');
+  const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
   const [resetBusy, setResetBusy] = useState(false);
-  const [resetSent, setResetSent] = useState(false);
   const [stats, setStats] = useState<PublicStats>({ totalLost: 0, memberCount: 0, weekNo: 0 });
 
   useEffect(() => {
@@ -38,11 +50,18 @@ export default function Login() {
 
   const submit = async () => {
     setErr('');
+    setNotice('');
     if (!/.+@.+\..+/.test(email)) return setErr("Cet email n'a pas l'air très sérieux.");
     if (pwd.length < 6) return setErr('Mot de passe : 6 caractères minimum.');
     setBusy(true);
     try {
-      await signIn(email, pwd);
+      if (mode === 'in') {
+        await signIn(email, pwd);
+      } else if (await signUp(email, pwd)) {
+        // Confirmation required: nothing more happens here until they click the link.
+        setNotice('Compte créé. Confirme ton email, puis reviens te connecter.');
+        setMode('in');
+      }
     } catch (e) {
       setErr(translateAuthError(e));
     } finally {
@@ -52,12 +71,12 @@ export default function Login() {
 
   const forgotPassword = async () => {
     setErr('');
-    setResetSent(false);
-    if (!/.+@.+\..+/.test(email)) return setErr("Entre ton email ci-dessus pour recevoir le lien.");
+    setNotice('');
+    if (!/.+@.+\..+/.test(email)) return setErr('Entre ton email ci-dessus pour recevoir le lien.');
     setResetBusy(true);
     try {
       await resetPassword(email);
-      setResetSent(true);
+      setNotice('Lien envoyé — vérifie ta boîte mail.');
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Erreur');
     } finally {
@@ -67,7 +86,7 @@ export default function Login() {
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', minHeight: '100vh' }}>
-      {/* Hero */}
+      {/* Présentation */}
       <div
         style={{
           position: 'relative',
@@ -94,14 +113,15 @@ export default function Login() {
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 13, height: 13, background: LIME, borderRadius: 3 }} />
           <span style={{ fontSize: 12, letterSpacing: '.22em', textTransform: 'uppercase', color: 'rgba(242,240,230,.6)' }}>
-            {GROUP_NAME}
+            Le championnat de pesée entre potes
           </span>
         </div>
+
         <div style={{ position: 'relative', animation: 'riseIn .7s cubic-bezier(.2,.8,.2,1) both' }}>
           <h1
             style={{
               fontFamily: 'Anton, sans-serif',
-              fontSize: 'clamp(72px, 13vw, 168px)',
+              fontSize: 'clamp(64px, 11vw, 148px)',
               lineHeight: 0.84,
               margin: 0,
               textTransform: 'uppercase',
@@ -110,10 +130,24 @@ export default function Login() {
           >
             Ba<span style={{ color: LIME }}>lan</span>ce
           </h1>
-          <p style={{ maxWidth: '30ch', margin: '22px 0 0', fontSize: 'clamp(16px, 1.6vw, 20px)', lineHeight: 1.45, color: 'rgba(242,240,230,.68)' }}>
-            Le championnat du lundi matin. On se pèse, on note, on se chambre. Les chiffres ne mentent pas — vous, si.
+          <p style={{ maxWidth: '34ch', margin: '22px 0 0', fontSize: 'clamp(16px, 1.6vw, 20px)', lineHeight: 1.45, color: 'rgba(242,240,230,.68)' }}>
+            On se pèse une fois par semaine, dans une room privée, entre gens qui se connaissent.
+            Courbes, classement, trophées et petites piques. Les chiffres ne mentent pas — vous, si.
           </p>
+
+          <div style={{ display: 'grid', gap: 14, marginTop: 30, maxWidth: 460 }}>
+            {STEPS.map((s) => (
+              <div key={s.n} style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+                <span style={{ fontFamily: 'Anton, sans-serif', fontSize: 15, color: LIME, paddingTop: 2, flex: 'none' }}>{s.n}</span>
+                <div>
+                  <div style={{ fontSize: 14.5, fontWeight: 600 }}>{s.title}</div>
+                  <div style={{ fontSize: 13, color: 'rgba(242,240,230,.5)', lineHeight: 1.45 }}>{s.text}</div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
+
         <div style={{ position: 'relative', display: 'flex', flexWrap: 'wrap', gap: 28, animation: 'riseIn .9s cubic-bezier(.2,.8,.2,1) both' }}>
           <HeroStat value={stats.totalLost} label="kg envolés" accent />
           <HeroStat value={stats.memberCount} label="concurrents" />
@@ -121,12 +155,22 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Form */}
+      {/* Accès */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '48px clamp(24px, 5vw, 72px)' }}>
         <div style={{ width: '100%', maxWidth: 400, animation: 'popIn .6s cubic-bezier(.2,.8,.2,1) both' }}>
-          <div style={{ fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: LIME }}>Accès membres</div>
-          <h2 style={{ fontFamily: 'Anton, sans-serif', fontSize: 42, lineHeight: 1, margin: '12px 0 28px', textTransform: 'uppercase' }}>
-            On se connecte
+          {invited && (
+            <div style={{ marginBottom: 22, padding: '13px 15px', background: 'rgba(200,255,61,.08)', border: '1px solid rgba(200,255,61,.3)', borderRadius: 12, fontSize: 13, color: LIME, lineHeight: 1.5 }}>
+              Tu es invité dans une room. Crée ton compte, on t'y emmène juste après.
+            </div>
+          )}
+
+          <div style={{ display: 'flex', gap: 4, padding: 4, background: '#191C14', border: '1px solid rgba(242,240,230,.10)', borderRadius: 999, marginBottom: 26 }}>
+            <button onClick={() => { setMode('in'); setErr(''); }} style={{ ...tabStyle(mode === 'in'), flex: 1 }}>Se connecter</button>
+            <button onClick={() => { setMode('up'); setErr(''); }} style={{ ...tabStyle(mode === 'up'), flex: 1 }}>Créer un compte</button>
+          </div>
+
+          <h2 style={{ fontFamily: 'Anton, sans-serif', fontSize: 38, lineHeight: 1, margin: '0 0 26px', textTransform: 'uppercase' }}>
+            {mode === 'in' ? 'On se connecte' : 'On se lance'}
           </h2>
 
           <label style={labelStyle}>Email</label>
@@ -145,32 +189,37 @@ export default function Login() {
             onChange={(e) => setPwd(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && submit()}
             placeholder="••••••••"
-            autoComplete="current-password"
+            autoComplete={mode === 'in' ? 'current-password' : 'new-password'}
           />
 
-          <div style={{ textAlign: 'right', marginTop: 10 }}>
-            <button type="button" onClick={forgotPassword} disabled={resetBusy} style={forgotLinkStyle}>
-              {resetBusy ? 'Envoi…' : 'Mot de passe oublié ?'}
-            </button>
-          </div>
+          {mode === 'in' && (
+            <div style={{ textAlign: 'right', marginTop: 10 }}>
+              <button type="button" onClick={forgotPassword} disabled={resetBusy} style={forgotLinkStyle}>
+                {resetBusy ? 'Envoi…' : 'Mot de passe oublié ?'}
+              </button>
+            </div>
+          )}
 
           {err && <ErrorBanner>{err}</ErrorBanner>}
 
-          {resetSent && (
+          {notice && (
             <div style={{ marginTop: 14, padding: '11px 14px', background: 'rgba(200,255,61,.08)', border: '1px solid rgba(200,255,61,.3)', borderRadius: 10, color: LIME, fontSize: 13 }}>
-              Lien envoyé — vérifie ta boîte mail.
+              {notice}
             </div>
           )}
 
           <button onClick={submit} disabled={busy} style={{ ...primaryBtn('hero', busy), width: '100%', marginTop: 24 }}>
-            {busy ? 'Un instant…' : 'Monter sur la balance'}
+            {busy ? 'Un instant…' : mode === 'in' ? 'Monter sur la balance' : 'Créer mon compte'}
           </button>
 
-          <div style={{ marginTop: 22, fontSize: 13, color: 'rgba(242,240,230,.45)' }}>
-            Pas de compte ? Demande à l'admin de t'en créer un.
+          <div style={{ marginTop: 22, fontSize: 13, color: 'rgba(242,240,230,.45)', lineHeight: 1.5 }}>
+            {mode === 'in'
+              ? "Pas encore de compte ? Crées-en un, puis ouvre ta room ou rejoins celle d'un ami."
+              : 'Juste après, tu choisis : créer ta room, ou entrer dans celle où on t’a invité.'}
           </div>
           <div style={{ marginTop: 28, padding: '13px 15px', border: '1px dashed rgba(242,240,230,.18)', borderRadius: 12, fontSize: 12.5, color: 'rgba(242,240,230,.5)', lineHeight: 1.5 }}>
-            Comptes gérés par l'admin. Tes données sont protégées par Supabase (RLS).
+            Chaque room est cloisonnée côté base de données (Supabase, RLS) : personne n'accède
+            aux pesées d'une room où il n'a pas été invité.
           </div>
         </div>
       </div>
@@ -221,6 +270,8 @@ function HeroStat({ value, label, accent }: { value: number; label: string; acce
 function translateAuthError(e: unknown): string {
   const msg = e instanceof Error ? e.message : String(e);
   if (/invalid login credentials/i.test(msg)) return 'Email ou mot de passe incorrect.';
+  if (/already registered|already exists/i.test(msg)) return 'Un compte existe déjà avec cet email. Connecte-toi.';
+  if (/signups? not allowed|disabled/i.test(msg)) return "Les inscriptions sont fermées côté Supabase. Active-les dans Authentication → Sign In / Providers.";
   if (/email/i.test(msg) && /confirm/i.test(msg)) return 'Confirme ton email avant de te connecter.';
   return msg;
 }

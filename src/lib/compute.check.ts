@@ -1,27 +1,31 @@
 // Self-check for buildTrophies. No test runner in this project, so run it with
 // the esbuild that ships with vite:
 //   npx esbuild src/lib/compute.check.ts --bundle --platform=node --outfile=check.mjs && node check.mjs && rm check.mjs
-import { buildTrophies, dashboard, validateProfile } from './compute';
+import { buildTrophies, calWeek, dashboard, validateProfile } from './compute';
+import { hrefFor, parseRoute } from './route';
 import type { Entry, Member } from '../types';
 
 const D = (iso: string) => Date.parse(iso + 'T00:00:00Z');
-// Week 0 = Mon 27 Jul 2026 (Monday of the week containing BASE_DATE).
-const e = (week: number, iso: string, weight: number): Entry => ({
-  id: iso, profileId: '', week, date: D(iso), weight,
+// Week 0 = Mon 27 Jul 2026 (Monday of the week containing BASE_DATE). The week
+// a weigh-in belongs to is derived from its date, exactly as data.ts does it.
+const e = (iso: string, weight: number): Entry => ({
+  id: iso, profileId: '', week: calWeek(D(iso)), date: D(iso), weight,
   taille: null, hanches: null, poitrine: null, bras: null, cuisse: null, mg: null, note: '',
 });
-const member = (name: string, start: number, entries: Entry[], target = start - 10): Member => ({
-  id: name, name, color: '#fff', start, target, roast: '', isMe: false, entries,
+// joined defaults to the first weigh-in, like a profile with no creation date.
+const member = (name: string, start: number, entries: Entry[], target = start - 10, joined = entries[0]?.date ?? 0): Member => ({
+  id: name, name, color: '#fff', start, target, roast: '', joined, isMe: false, entries,
 });
 
 const alice = member('Alice', 80, [
-  e(0, '2026-07-27', 80), e(1, '2026-08-03', 79), e(2, '2026-08-10', 78), e(3, '2026-08-17', 76),
+  e('2026-07-27', 80), e('2026-08-03', 79), e('2026-08-10', 78), e('2026-08-17', 76),
 ]);
-// Joined in week 2, one weigh-in on a Wednesday.
-const bob = member('Bob', 100, [e(2, '2026-08-10', 100), e(3, '2026-08-19', 99)]);
-// Skipped week 2, weighed on a Saturday then a Sunday.
-const carol = member('Carol', 60, [e(0, '2026-07-27', 60), e(1, '2026-08-08', 59.8), e(3, '2026-08-23', 59.5)]);
+// Joined in week 2, second weigh-in on a Wednesday.
+const bob = member('Bob', 100, [e('2026-08-10', 100), e('2026-08-19', 99)]);
+// Skipped week 2, weighed on a Saturday then a Sunday: a confirmed break.
+const carol = member('Carol', 60, [e('2026-07-27', 60), e('2026-08-08', 59.8), e('2026-08-23', 59.5)]);
 
+// nowWeek = 3: the league is in the week of Carol's comeback.
 const t = buildTrophies([alice, bob, carol], 3);
 const who = (title: string) => t.find((x) => x.title === title)?.who ?? '';
 
@@ -32,20 +36,37 @@ const ok = (cond: boolean, msg: string) => {
 ok(who('Le patron') === 'Alice', 'meilleure progression vers son objectif');
 ok(who('Coup de massue') === 'Alice', 'meilleure semaine');
 ok(who('Métronome') === 'Alice', 'plus longue série');
-ok(who('Pile à l’heure') === 'Alice', 'seule à ne peser que le lundi');
 ok(who('Sans faute') === 'Alice, Bob', 'Bob a rejoint tard mais n’a rien loupé depuis');
-ok(who('Petit nouveau') === 'Bob', 'seul à être arrivé après la semaine 1');
-ok(who('Le fantôme') === 'Carol', 'seule à avoir sauté une semaine depuis son arrivée');
-ok(who('Le retardataire') === 'Carol', '2 pesées hors lundi contre 1 pour Bob');
+ok(who('Petit nouveau') === 'Bob', 'seul arrivé il y a moins de deux semaines');
+ok(who('Le fantôme') === 'Carol', 'seule à avoir sauté une semaine puis refait surface');
 ok(who('Rattrapage du dimanche') === 'Carol', 'pesée un dimanche');
+ok(!t.some((x) => x.title === 'Le retardataire'), 'plus de trophée lié au jour de la pesée');
 ok(who('Le pilier') === 'Alice', '4 pesées');
 ok(!t.some((x) => x.title === 'Objectif atteint'), 'personne n’a atteint sa cible');
 
+// ---- Les trophées récents sortent de la liste au bout de deux semaines ----
+// Chacun compte ses deux semaines depuis son propre événement : l'arrivée pour
+// Bob (semaine 2), le retour et le dimanche pour Carol (semaine 3).
+const titlesAt = (nowWeek: number) => buildTrophies([alice, bob, carol], nowWeek).map((x) => x.title);
+
+ok(titlesAt(3).includes('Petit nouveau'), 'nouveau la semaine qui suit son arrivée');
+ok(!titlesAt(4).includes('Petit nouveau'), 'plus nouveau deux semaines après son arrivée');
+ok(titlesAt(4).includes('Le fantôme'), 'la coupure colle encore la semaine suivante');
+ok(!titlesAt(5).includes('Le fantôme'), 'la coupure sort de la liste deux semaines après');
+ok(titlesAt(4).includes('Rattrapage du dimanche'), 'le dimanche colle encore la semaine suivante');
+ok(!titlesAt(5).includes('Rattrapage du dimanche'), 'le dimanche sort de la liste deux semaines après');
+// Carol reste assidue depuis son retour : ça ne l'absout pas plus tôt.
+ok(buildTrophies([alice, bob, { ...carol, entries: [...carol.entries, e('2026-08-31', 59.2)] }], 4)
+  .some((x) => x.title === 'Le fantôme'), 'redevenir assidu n’efface pas la coupure avant deux semaines');
+// Un trou pas encore refermé n'est pas une coupure : elle peut encore se peser.
+ok(!buildTrophies([member('Absente', 70, [e('2026-07-27', 70), e('2026-08-03', 70)])], 5)
+  .some((x) => x.title === 'Le fantôme'), 'une absence en cours n’est pas encore une coupure');
+
 // Feed: a note must carry the delta, but only when there is a previous weigh-in.
-const solo = member('Solo', 90, [e(3, '2026-08-17', 89)]);
+const solo = member('Solo', 90, [e('2026-08-17', 89)]);
 solo.entries[0].note = 'première';
 alice.entries[3].note = 'raclette';
-const feed = dashboard([alice, solo], '', 'pct', {}, {});
+const feed = dashboard([alice, solo], '', 'pct', {}, {}, 3);
 const feedTextOf = (vm: ReturnType<typeof dashboard>, name: string) =>
   vm.feed.find((f) => f.name === name)?.text ?? '';
 const feedOf = (name: string) => feedTextOf(feed, name);
@@ -54,8 +75,38 @@ ok(feedOf('Alice').includes('(−2 kg)'), 'note + poids + écart avec la pesée 
 ok(!feedOf('Solo').includes('kg)'), 'aucun écart affiché sur une première pesée');
 
 // Chart: one dot per weigh-in, not just the last one.
-const dots = feed.chart.series.find((s) => s.name === 'Alice')?.dots ?? [];
-ok(dots.length === 4, `4 points pour 4 pesées, reçu ${dots.length}`);
+const dotsOf = (vm: ReturnType<typeof dashboard>, name: string) =>
+  vm.chart.dots.filter((d) => d.items.some((i) => i.name === name));
+ok(dotsOf(feed, 'Alice').length === 4, `4 points pour 4 pesées, reçu ${dotsOf(feed, 'Alice').length}`);
+
+// ---- Points superposés : un seul point, tout le monde dans l'infobulle ----
+const clone = member('Clone', 80, alice.entries.slice(), 70);
+const stacked = dashboard([alice, clone], '', 'kg', {}, {}, 3);
+ok(stacked.chart.dots.length === 4, `4 points fusionnés pour 2 courbes identiques, reçu ${stacked.chart.dots.length}`);
+ok(stacked.chart.dots.every((d) => d.items.length === 2), 'chaque point porte les deux membres');
+ok(stacked.chart.dots[0].items.map((i) => i.name).join() === 'Alice,Clone', 'les deux noms, avec leur poids');
+
+// Écartés de plus de deux rayons : deux points distincts, pas de fusion abusive.
+const apart = dashboard([alice, member('Loin', 120, [e('2026-07-27', 120)], 110)], '', 'kg', {}, {}, 3);
+ok(apart.chart.dots.filter((d) => d.x === apart.chart.dots[0].x).every((d) => d.items.length === 1),
+  'deux poids éloignés gardent chacun leur point');
+
+// Un membre masqué sort des points : plus d'infobulle fantôme.
+const masked = dashboard([alice, clone], '', 'kg', { [clone.id]: true }, {}, 3);
+ok(masked.chart.dots.every((d) => d.items.length === 1 && d.items[0].name === 'Alice'), 'le membre masqué n’a plus de point');
+
+// ---- Pesées possibles : comptées depuis l'arrivée de chacun ----
+// Alice est là depuis la semaine 0 (4 dues à la semaine 3), Bob depuis la 2 (2 dues).
+const owed = dashboard([alice, bob], '', 'kg', {}, {}, 3);
+ok(owed.totalPossible === 6, `4 + 2 pesées dues, pas 2 × 4, reçu ${owed.totalPossible}`);
+ok(owed.totalEntries === 6, '6 pesées enregistrées');
+
+// Inscrit en semaine 0 mais première pesée en semaine 2 : les deux semaines
+// sans pesée lui sont comptées, elles n'étaient pas hors de sa portée.
+const tardif = member('Tardif', 90, [e('2026-08-10', 90), e('2026-08-17', 89)], 80, D('2026-07-27'));
+ok(dashboard([tardif], '', 'kg', {}, {}, 3).totalPossible === 4, 'compté depuis la création du compte');
+ok(buildTrophies([tardif], 3).every((x) => x.title !== 'Sans faute'), 'deux semaines sautées après son inscription');
+ok(buildTrophies([tardif], 3).every((x) => x.title !== 'Petit nouveau'), 'inscrit depuis trop longtemps pour être nouveau');
 
 // Profile rules, shared by onboarding and settings.
 ok(validateProfile('Marco', 96, 84) === null, 'un profil valide passe');
@@ -69,17 +120,19 @@ ok(validateProfile('Théo', 60, 72) === null, 'un objectif au-dessus du départ 
 // ---- Prise de poids : scoré sur son propre objectif, pas sur le déficit ----
 // Théo vise +12 kg et en a pris 3 ; Alice vise −10 kg et en a perdu 4.
 const theo = member('Théo', 60, [
-  e(0, '2026-07-27', 60), e(1, '2026-08-03', 61), e(2, '2026-08-10', 60.5), e(3, '2026-08-17', 63),
+  e('2026-07-27', 60), e('2026-08-03', 61), e('2026-08-10', 60.5), e('2026-08-17', 63),
 ], 72);
-const mixed = dashboard([alice, theo], '', 'pct', {}, {});
+const mixed = dashboard([alice, theo], '', 'pct', {}, {}, 3);
 const rankOf = (name: string) => mixed.ranking.find((r) => r.name.startsWith(name));
 
 ok(rankOf('Théo')?.pct === '5%', `+3 kg sur 60 = 5 % de progression, reçu ${rankOf('Théo')?.pct}`);
 ok(rankOf('Alice')?.pct === '5%', 'Alice a exactement la même progression avec −4 kg sur 80');
 ok(rankOf('Théo')!.barWidth > 0, 'la barre du preneur de poids n’est pas écrasée');
 
-// Sa semaine +2.5 kg est un progrès, pas une rechute : couleur neutre, pas orange.
-ok(rankOf('Théo')?.delta === '+2.5 kg', 'l’écart brut reste affiché tel quel');
+// Sous le %, les kilos du parcours entier — pas ceux de la dernière semaine.
+ok(rankOf('Théo')?.delta === '+3 kg', `+3 kg pris au total (et non +2.5 la semaine), reçu ${rankOf('Théo')?.delta}`);
+ok(rankOf('Alice')?.delta === '-4 kg', `−4 kg perdus au total, reçu ${rankOf('Alice')?.delta}`);
+// Une prise de poids voulue reste un progrès : couleur neutre, pas orange.
 ok(rankOf('Théo')?.deltaColor !== '#FF7A2F', 'une prise de poids voulue n’est pas signalée en rouge');
 ok(rankOf('Alice')?.deltaColor !== '#FF7A2F', 'une perte voulue non plus');
 
@@ -87,7 +140,7 @@ ok(mixed.bestWeekName === 'Théo', `meilleur de la semaine = +2.5 kg voulus, re�
 ok(feedTextOf(mixed, 'Théo').includes('a pris 2.5 kg'), 'le feed dit « a pris », pas « a repris »');
 
 // Le graphe de progression monte pour les deux : dernier point plus haut que le premier.
-const theoDots = mixed.chart.series.find((s) => s.name === 'Théo')!.dots;
+const theoDots = dotsOf(mixed, 'Théo');
 ok(theoDots[3].y < theoDots[0].y, 'la courbe du preneur de poids monte quand il progresse');
 
 // Trophées : ses records se mesurent dans son sens à lui.
@@ -101,9 +154,22 @@ ok(whoMixed('Effet yoyo') === 'Théo', 'sa semaine à −0.5 kg est la seule ré
 ok(noteMixed('Effet yoyo').includes('−0.5 kg'), 'annoncée en négatif pour lui');
 
 // Objectif atteint dans les deux sens.
-ok(buildTrophies([member('Grand', 60, [e(0, '2026-07-27', 75)], 72)], 0)
+ok(buildTrophies([member('Grand', 60, [e('2026-07-27', 75)], 72)], 0)
   .some((x) => x.title === 'Objectif atteint'), 'cible dépassée par le haut = atteinte');
-ok(!buildTrophies([member('Petit', 60, [e(0, '2026-07-27', 61)], 72)], 0)
+ok(!buildTrophies([member('Petit', 60, [e('2026-07-27', 61)], 72)], 0)
   .some((x) => x.title === 'Objectif atteint'), 'en dessous de sa cible haute = pas atteinte');
 
-console.log(`OK — ${t.length} trophées, feed, graphe, validation et prise de poids vérifiés`);
+// ---- Routes : l'URL doit survivre à l'aller-retour, et l'inconnu tomber en 404 ----
+const roundTrip = (r: Parameters<typeof hrefFor>[0]) => JSON.stringify(parseRoute(hrefFor(r))) === JSON.stringify(r);
+
+ok(roundTrip({ name: 'dash' }), 'le groupe');
+ok(roundTrip({ name: 'me' }), 'mon suivi');
+ok(roundTrip({ name: 'me', id: 'abc-123' }), 'le suivi de quelqu’un d’autre');
+ok(roundTrip({ name: 'settings' }), 'les réglages');
+ok(parseRoute('').name === 'dash', 'une URL sans hash ouvre le groupe');
+ok(parseRoute('#/inconnu').name === '404', 'une route inconnue tombe en 404');
+ok(parseRoute('#/membre').name === '404', 'un suivi sans identifiant aussi');
+// Supabase pose ses jetons dans le hash : ce n'est pas une route, pas un 404.
+ok(parseRoute('#access_token=xyz&type=recovery').name === 'dash', 'les jetons Supabase ne sont pas une route');
+
+console.log(`OK — ${t.length} trophées, feed, graphe, routes, validation et prise de poids vérifiés`);

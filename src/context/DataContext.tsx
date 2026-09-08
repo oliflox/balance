@@ -1,19 +1,21 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { addWeighIn, createProfile, fetchAll, toggleReaction, updateProfile } from '../lib/data';
+import { addWeighIn, createProfile, createRoom, fetchAll, roomByCode, toggleReaction, updateProfile } from '../lib/data';
 import type { NewProfile, NewWeighIn, ProfileUpdate } from '../lib/data';
-import { hasEntries, last } from '../lib/compute';
-import type { Member, ReactionIndex } from '../types';
+import { hasEntries } from '../lib/compute';
+import type { Member, ReactionIndex, Room } from '../types';
 
 interface DataValue {
   loading: boolean;
   error: string | null;
-  members: Member[]; // all profiles
+  room: Room | null; // the room the user belongs to, or one they created but never joined
+  members: Member[]; // all profiles in that room
   activeMembers: Member[]; // profiles with at least one weigh-in
   reactions: ReactionIndex;
   me: Member | null; // the profile linked to the signed-in user
-  groupMaxWeek: number;
+  openRoom: (name: string) => Promise<string>;
+  findRoom: (code: string) => Promise<{ id: string; name: string }>;
   createMyProfile: (p: NewProfile) => Promise<void>;
   updateMyProfile: (fields: ProfileUpdate) => Promise<void>;
   saveWeighIn: (w: NewWeighIn) => Promise<void>;
@@ -24,6 +26,7 @@ const DataCtx = createContext<DataValue | null>(null);
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const [room, setRoom] = useState<Room | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [reactions, setReactions] = useState<ReactionIndex>({});
   const [loading, setLoading] = useState(true);
@@ -34,8 +37,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const id = ++reqId.current;
     setError(null);
     try {
-      const { members, reactions } = await fetchAll(user?.id ?? null);
+      const { room, members, reactions } = await fetchAll(user?.id ?? null);
       if (id !== reqId.current) return; // a newer refresh superseded this one
+      setRoom(room);
       setMembers(members);
       setReactions(reactions);
     } catch (e) {
@@ -54,20 +58,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const activeMembers = useMemo(() => members.filter(hasEntries), [members]);
   const me = useMemo(() => members.find((m) => m.isMe) ?? null, [members]);
-  const groupMaxWeek = useMemo(
-    () => (activeMembers.length ? Math.max(...activeMembers.map((m) => last(m).week)) : 0),
-    [activeMembers]
-  );
-
   const value = useMemo<DataValue>(
     () => ({
       loading,
       error,
+      room,
       members,
       activeMembers,
       reactions,
       me,
-      groupMaxWeek,
+      async openRoom(name) {
+        if (!user) throw new Error('Non connecté');
+        const id = await createRoom(user.id, name);
+        await refresh();
+        return id;
+      },
+      findRoom: roomByCode,
       async createMyProfile(p) {
         if (!user) throw new Error('Non connecté');
         await createProfile(user.id, p);
@@ -99,7 +105,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       },
     }),
-    [loading, error, members, activeMembers, reactions, me, groupMaxWeek, refresh, user]
+    [loading, error, room, members, activeMembers, reactions, me, refresh, user]
   );
 
   return <DataCtx.Provider value={value}>{children}</DataCtx.Provider>;

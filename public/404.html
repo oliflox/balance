@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Balance — 404</title>
+    <link rel="icon" type="image/svg+xml" href="/balance/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Anton&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- Servie par GitHub Pages pour toute URL inconnue du site. Volontairement
+         autonome : ni bundle ni JS, elle s'affiche même quand l'appli ne charge pas.
+         Les routes de l'appli vivent après le #, elles ne passent jamais par ici. -->
+    <style>
+      html, body { margin: 0; padding: 0; }
+      body {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        box-sizing: border-box;
+        background: radial-gradient(1200px 600px at 80% -10%, rgba(200,255,61,.10), transparent 60%), #0E100C;
+        color: #F2F0E6;
+        font-family: 'Space Grotesk', system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .card {
+        max-width: 520px;
+        text-align: center;
+        background: #191C14;
+        border: 1px solid rgba(242,240,230,.10);
+        border-radius: 22px;
+        padding: clamp(28px, 4vw, 44px);
+      }
+      .kicker { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: #FF7A2F; }
+      .code { font-family: Anton, sans-serif; font-size: clamp(72px, 16vw, 132px); line-height: .85; margin: 14px 0 0; color: #C8FF3D; }
+      h1 { font-family: Anton, sans-serif; font-size: clamp(24px, 4vw, 34px); margin: 16px 0 0; text-transform: uppercase; }
+      p { margin: 10px 0 0; font-size: 14px; color: rgba(242,240,230,.5); line-height: 1.5; }
+      a {
+        display: inline-block;
+        margin-top: 24px;
+        padding: 12px 20px;
+        background: #C8FF3D;
+        color: #0E100C;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 14px;
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="kicker">Erreur 404</div>
+      <div class="code">404</div>
+      <h1>Cette page a sauté sa pesée</h1>
+      <p>Introuvable au classement, absente du fil, portée disparue. On ne juge pas — mais la balance, si.</p>
+      <a href="/balance/">Retour sur la balance</a>
+    </div>
+  </body>
+</html>

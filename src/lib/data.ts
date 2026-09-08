@@ -63,7 +63,10 @@ export async function fetchAll(userId: string | null): Promise<FetchResult> {
     supabase.from('balance_entries').select('*').order('week', { ascending: true }),
     supabase.from('balance_reactions').select('entry_id,user_id,emoji'),
   ]);
-  if (roomsRes.error) throw roomsRes.error;
+  // La room ne porte que le nom affiché et le code d'invitation. Si sa lecture
+  // échoue, on dégrade ces deux détails plutôt que d'éteindre tout le tableau
+  // de bord — les pesées, elles, restent lisibles.
+  if (roomsRes.error) console.warn('Room illisible :', roomsRes.error.message);
   if (profilesRes.error) throw profilesRes.error;
   if (entriesRes.error) throw entriesRes.error;
   if (reactsRes.error) throw reactsRes.error;
@@ -119,7 +122,7 @@ export async function fetchAll(userId: string | null): Promise<FetchResult> {
     if (userId && r.user_id === userId) cell.mine = true;
   }
 
-  const roomRow = ((roomsRes.data ?? []) as RoomRow[])[0];
+  const roomRow = ((roomsRes.data ?? []) as RoomRow[] | null)?.[0];
   const room: Room | null = roomRow
     ? { id: roomRow.id, name: roomRow.name, code: roomRow.code, isMine: roomRow.owner_id === userId }
     : null;

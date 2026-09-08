@@ -154,7 +154,19 @@ create policy reactions_create on balance_reactions for insert to authenticated
 create policy reactions_delete on balance_reactions for delete to authenticated
   using (user_id = auth.uid());
 
--- ------------------------------------------- 5. Garder l'accueil public vivant
+-- ------------------------------------------------------------ 5. Les privilèges
+-- Les policies filtrent des LIGNES ; encore faut-il avoir le droit d'ouvrir la
+-- table. `balance_rooms` est neuve et n'a hérité d'aucun grant, d'où un 401
+-- « permission denied » avant même que la RLS ait son mot à dire. On l'écrit
+-- explicitement pour les quatre tables plutôt que de compter sur les privilèges
+-- par défaut du schéma. Rien pour `anon` : un visiteur non connecté n'a accès
+-- qu'à la fonction de statistiques.
+grant select, insert                 on balance_rooms     to authenticated;
+grant select, insert, update         on balance_profiles  to authenticated;
+grant select, insert                 on balance_entries   to authenticated;
+grant select, insert, delete         on balance_reactions to authenticated;
+
+-- ------------------------------------------- 6. Garder l'accueil public vivant
 -- Les policies ci-dessus ne parlent qu'à `authenticated`. Un visiteur non connecté
 -- n'a donc plus le droit de lire quoi que ce soit — ce qui est voulu, sauf pour les
 -- compteurs de la page d'accueil. On les fait passer par la fonction, en definer,

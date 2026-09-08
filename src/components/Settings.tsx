@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { r1, validateProfile } from '../lib/compute';
+import { initialsOf, r1, validateProfile } from '../lib/compute';
 import { hrefFor } from '../lib/route';
 import { LIME, ORANGE, panel, primaryBtn } from '../theme';
-import type { Room } from '../types';
+import type { Member, Room } from '../types';
 import { ColorPicker, ErrorBanner, Field, UnitInput, textInput } from './FormControls';
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
 }
 
 export default function Settings({ onToast }: Props) {
-  const { me, room, updateMyProfile } = useData();
+  const { me, room, members, updateMyProfile, removeMember } = useData();
   const { user, updatePassword, updateEmail, signOut } = useAuth();
 
   if (!me) return null;
@@ -28,6 +28,11 @@ export default function Settings({ onToast }: Props) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {room && <InviteCard room={room} onToast={onToast} />}
+        {/* Le propriétaire seul voit ce panneau ; la base refuse de toute façon
+            l'appel de quelqu'un d'autre. */}
+        {room?.isMine && (
+          <MembersCard members={members} meId={me.id} onRemove={removeMember} onToast={onToast} />
+        )}
         <ProfileCard me={me} onSave={updateMyProfile} onToast={onToast} />
         <PasswordCard onSave={updatePassword} onToast={onToast} />
         <EmailCard currentEmail={user?.email ?? ''} onSave={updateEmail} onToast={onToast} />
@@ -87,6 +92,97 @@ function InviteCard({ room, onToast }: { room: Room; onToast: (m: string) => voi
           </button>
         </div>
       </div>
+    </Card>
+  );
+}
+
+// ---- Membres (propriétaire uniquement) --------------------------------------
+
+function MembersCard({
+  members,
+  meId,
+  onRemove,
+  onToast,
+}: {
+  members: Member[];
+  meId: string;
+  onRemove: (profileId: string) => Promise<void>;
+  onToast: (m: string) => void;
+}) {
+  // Retirer efface des pesées : un clic ne suffit pas, il en faut deux.
+  const [pending, setPending] = useState('');
+  const [busy, setBusy] = useState('');
+
+  const remove = async (m: Member) => {
+    setBusy(m.id);
+    try {
+      await onRemove(m.id);
+      onToast(m.name + ' a été retiré de la room.');
+    } catch (e) {
+      onToast(e instanceof Error ? e.message : 'Erreur');
+    } finally {
+      setBusy('');
+      setPending('');
+    }
+  };
+
+  const sorted = members.slice().sort((a, b) => a.name.localeCompare(b.name));
+
+  return (
+    <Card title="Les membres" subtitle={sorted.length + ' dans la room. Toi seul, propriétaire, vois ce panneau.'}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {sorted.map((m) => {
+          const isMe = m.id === meId;
+          const asking = pending === m.id;
+          return (
+            <div
+              key={m.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: 12,
+                borderRadius: 14,
+                background: asking ? 'rgba(255,122,47,.10)' : 'rgba(242,240,230,.04)',
+                border: `1px solid ${asking ? 'rgba(255,122,47,.4)' : 'rgba(242,240,230,.09)'}`,
+                transition: 'all .18s ease',
+              }}
+            >
+              <span style={{ width: 32, height: 32, borderRadius: '50%', background: m.color, color: '#0E100C', display: 'grid', placeItems: 'center', fontWeight: 700, fontSize: 12.5, flex: 'none' }}>
+                {initialsOf(m.name)}
+              </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>
+                  {m.name}
+                  {isMe && <span style={{ fontSize: 11, color: LIME, marginLeft: 8 }}>toi · propriétaire</span>}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'rgba(242,240,230,.42)' }}>
+                  {m.entries.length === 0 ? 'aucune pesée' : m.entries.length + (m.entries.length > 1 ? ' pesées' : ' pesée')}
+                </div>
+              </div>
+
+              {isMe ? null : asking ? (
+                <div style={{ display: 'flex', gap: 8, flex: 'none' }}>
+                  <button onClick={() => remove(m)} disabled={busy === m.id} style={dangerBtn}>
+                    {busy === m.id ? 'Retrait…' : 'Confirmer'}
+                  </button>
+                  <button onClick={() => setPending('')} style={{ ...ghostBtn, borderColor: 'rgba(242,240,230,.16)', color: 'rgba(242,240,230,.6)' }}>
+                    Annuler
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => setPending(m.id)} style={{ ...ghostBtn, flex: 'none' }}>
+                  Retirer
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <p style={{ margin: '16px 0 0', fontSize: 12.5, color: 'rgba(242,240,230,.42)', lineHeight: 1.5 }}>
+        Retirer quelqu'un supprime ses pesées de la room. Elles sont archivées en base, donc
+        récupérables, mais plus par l'appli — et la personne pourra rejoindre à nouveau avec le code.
+      </p>
     </Card>
   );
 }
@@ -253,5 +349,16 @@ const ghostBtn: React.CSSProperties = {
   color: ORANGE,
   fontSize: 13,
   fontWeight: 600,
+  cursor: 'pointer',
+};
+
+const dangerBtn: React.CSSProperties = {
+  padding: '9px 15px',
+  background: ORANGE,
+  border: '1px solid ' + ORANGE,
+  borderRadius: 999,
+  color: '#0E100C',
+  fontSize: 13,
+  fontWeight: 700,
   cursor: 'pointer',
 };

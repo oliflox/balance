@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { addWeighIn, createProfile, createRoom, fetchAll, roomByCode, toggleReaction, updateProfile } from '../lib/data';
+import { addWeighIn, createProfile, createRoom, fetchAll, removeMember, roomByCode, toggleReaction, updateProfile } from '../lib/data';
 import type { NewProfile, NewWeighIn, ProfileUpdate } from '../lib/data';
 import { hasEntries } from '../lib/compute';
 import type { Member, ReactionIndex, Room } from '../types';
@@ -17,6 +17,7 @@ interface DataValue {
   openRoom: (name: string) => Promise<string>;
   findRoom: (code: string) => Promise<{ id: string; name: string }>;
   createMyProfile: (p: NewProfile) => Promise<void>;
+  removeMember: (profileId: string) => Promise<void>;
   updateMyProfile: (fields: ProfileUpdate) => Promise<void>;
   saveWeighIn: (w: NewWeighIn) => Promise<void>;
   react: (entryId: string, emoji: string, mine: boolean) => Promise<void>;
@@ -82,6 +83,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       async updateMyProfile(fields) {
         if (!me) throw new Error('Profil manquant');
         await updateProfile(me.id, fields);
+        await refresh();
+      },
+      async removeMember(profileId) {
+        await removeMember(profileId);
         await refresh();
       },
       async saveWeighIn(w) {

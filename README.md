@@ -16,7 +16,8 @@ Réécriture en **React + Vite + TypeScript** de la maquette `Balance.dc.html`, 
 - **Le groupe** (dashboard) : courbes de tout le monde (% de progression ou kg), classement, fil des dernières pesées avec réactions emoji, mur des trophées.
 - **Mon suivi** : courbe de poids vs objectif, anneau de progression, série de semaines, mensurations, historique complet.
 - **Nouvelle pesée** : poids + mensurations + petit mot pour le groupe. Une seule par semaine.
-- **Réglages** : profil, mot de passe, email, et le code d'invitation de sa room à partager.
+- **Réglages** : profil, mot de passe, email, et le code d'invitation de sa room — visible par tous les membres, n'importe qui peut inviter.
+- **Panneau propriétaire** : la personne qui a créé la room y voit la liste des membres et peut en retirer. L'autorisation est vérifiée par la base (`balance_remove_member`), pas par l'interface.
 
 ## Migrations à appliquer
 
@@ -27,6 +28,7 @@ une fois, **dans l'ordre**, depuis Supabase → SQL Editor.
 |---|---|
 | `20260908_one_weigh_in_per_week.sql` | `week` devient le numéro de semaine calendaire, doublons purgés, contrainte d'unicité `(profile_id, week)` |
 | `20260908_rooms.sql` | Table `balance_rooms`, `room_id` sur les profils, membres actuels relogés dans une room, **toutes les policies RLS remplacées** |
+| `20260908_membres.sql` | Fonction `balance_remove_member` : le propriétaire retire un membre, ses pesées partant dans `balance_membres_retires` |
 
 **Ce que deviennent les données existantes.** Rien n'est supprimé. Les profils, pesées et
 réactions déjà en base sont conservés tels quels, et tous les membres actuels sont déplacés

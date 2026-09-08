@@ -152,6 +152,13 @@ export async function roomByCode(code: string): Promise<{ id: string; name: stri
   return row;
 }
 
+// L'autorisation est vérifiée dans la fonction, pas ici : le bouton caché n'est
+// qu'un confort d'interface, la base est ce qui refuse réellement.
+export async function removeMember(profileId: string): Promise<void> {
+  const { error } = await supabase.rpc('balance_remove_member', { p_profile_id: profileId });
+  if (error) throw error;
+}
+
 export interface NewProfile {
   roomId: string;
   name: string;

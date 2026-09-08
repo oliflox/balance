@@ -14,3 +14,5 @@ vite.config.d.ts
 .vscode/*
 !.vscode/extensions.json
 *.log
+# Rapports d'audit de sécurité (security-sentinel) — listent des failles, ne pas committer
+security-reports/

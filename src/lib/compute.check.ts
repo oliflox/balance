@@ -71,8 +71,8 @@ const feedTextOf = (vm: ReturnType<typeof dashboard>, name: string) =>
   vm.feed.find((f) => f.name === name)?.text ?? '';
 const feedOf = (name: string) => feedTextOf(feed, name);
 
-ok(feedOf('Alice').includes('(−2 kg)'), 'note + poids + écart avec la pesée précédente');
-ok(!feedOf('Solo').includes('kg)'), 'aucun écart affiché sur une première pesée');
+ok(feedOf('Alice') === '« raclette » — 76 kg (−2 kg)', `note, poids, écart : reçu ${feedOf('Alice')}`);
+ok(feedOf('Solo') === '« première » — 89 kg', `aucun écart sur une première pesée : reçu ${feedOf('Solo')}`);
 
 // Chart: one dot per weigh-in, not just the last one.
 const dotsOf = (vm: ReturnType<typeof dashboard>, name: string) =>
@@ -137,7 +137,11 @@ ok(rankOf('Théo')?.deltaColor !== '#FF7A2F', 'une prise de poids voulue n’est
 ok(rankOf('Alice')?.deltaColor !== '#FF7A2F', 'une perte voulue non plus');
 
 ok(mixed.bestWeekName === 'Théo', `meilleur de la semaine = +2.5 kg voulus, reçu ${mixed.bestWeekName}`);
-ok(feedTextOf(mixed, 'Théo').includes('a pris 2.5 kg'), 'le feed dit « a pris », pas « a repris »');
+ok(feedTextOf(mixed, 'Théo') === 'a pris du galon — 63 kg (+2.5 kg)',
+  `une prise voulue se lit comme un progrès : reçu ${feedTextOf(mixed, 'Théo')}`);
+// Toutes les lignes finissent pareil : poids, puis écart. La vanne suit, si elle existe.
+ok(mixed.feed.every((f) => / — [\d.]+ kg( \([+−±][\d.]+ kg\))?(\.|$)/.test(f.text)),
+  'même fin pour toutes les lignes du fil');
 
 // Le graphe de progression monte pour les deux : dernier point plus haut que le premier.
 const theoDots = dotsOf(mixed, 'Théo');

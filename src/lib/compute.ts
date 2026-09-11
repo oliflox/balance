@@ -425,16 +425,28 @@ export function dashboard(
     .slice(0, 6)
     .map((x) => {
       const m = x.m, l = last(m);
-      // No previous entry → nothing to compare against, so no delta at all.
-      const gap = m.entries.length < 2 ? '' : ' (' + (x.d > 0 ? '+' : x.d < 0 ? '−' : '±') + Math.abs(x.d) + ' kg)';
-      const kg = Math.abs(x.d);
-      const txt = l.note
-        ? '« ' + l.note + ' » — ' + l.weight + ' kg' + gap
-        : x.prog > 0
-        ? (dir(m) < 0 ? 'a lâché ' : 'a pris ') + kg + ' kg cette semaine. ' + l.weight + ' kg au compteur.'
-        : x.prog < 0
-        ? (dir(m) < 0 ? 'a repris ' : 'a reperdu ') + kg + ' kg. Personne n’est dupe. ' + l.weight + ' kg.'
-        : 'stagne à ' + l.weight + ' kg. Le plateau, ce grand classique.';
+      // Une seule forme pour toutes les lignes : ce qu'il s'est passé, puis le
+      // poids et l'écart, toujours au même endroit. La vanne, quand il y en a
+      // une, vient après — elle commente, elle n'est pas l'information.
+      const first = m.entries.length < 2;
+      // Pas de pesée précédente → rien à comparer, donc pas d'écart du tout.
+      const gap = first ? '' : ' (' + (x.d > 0 ? '+' : x.d < 0 ? '−' : '±') + Math.abs(x.d) + ' kg)';
+      let lead: string;
+      let punch = '';
+      if (l.note) {
+        lead = '« ' + l.note + ' »';
+      } else if (first) {
+        lead = 'ouvre son compteur';
+      } else if (x.prog > 0) {
+        lead = dir(m) < 0 ? 'a lâché du lest' : 'a pris du galon';
+      } else if (x.prog < 0) {
+        lead = dir(m) < 0 ? 'est reparti dans l’autre sens' : 'en a reperdu en route';
+        punch = '. Personne n’est dupe.';
+      } else {
+        lead = 'n’a pas bougé';
+        punch = '. Le plateau, ce grand classique.';
+      }
+      const txt = lead + ' — ' + l.weight + ' kg' + gap + punch;
       return {
         color: m.color,
         initials: initialsOf(m.name),

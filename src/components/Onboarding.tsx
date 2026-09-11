@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { r1, validateProfile } from '../lib/compute';
+import { errMessage, r1, validateProfile } from '../lib/compute';
 import { useRoute } from '../lib/route';
 import { COLOR_CHOICES, LIME, primaryBtn, tabStyle } from '../theme';
 import { ColorPicker, ErrorBanner, Field, UnitInput, textInput } from './FormControls';
@@ -45,7 +45,7 @@ function RoomStep({ invite, onPicked }: { invite: string; onPicked: (t: Target) 
     try {
       onPicked(mode === 'create' ? { id: await openRoom(name), name: name.trim() } : await findRoom(code));
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Erreur');
+      setErr(errMessage(e, 'Erreur'));
       setBusy(false);
     }
   };
@@ -115,7 +115,7 @@ function ProfileStep({ target, onBack }: { target: Target; onBack: () => void })
     try {
       await createMyProfile({ roomId: target.id, name: name.trim(), color, start: r1(s), target: r1(t) });
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Erreur');
+      setErr(errMessage(e, 'Erreur'));
       setBusy(false);
     }
   };

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { addWeighIn, createProfile, createRoom, fetchAll, removeMember, roomByCode, toggleReaction, updateProfile } from '../lib/data';
 import type { NewProfile, NewWeighIn, ProfileUpdate } from '../lib/data';
-import { hasEntries } from '../lib/compute';
+import { errMessage, hasEntries } from '../lib/compute';
 import type { Member, ReactionIndex, Room } from '../types';
 
 interface DataValue {
@@ -44,7 +44,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setMembers(members);
       setReactions(reactions);
     } catch (e) {
-      if (id === reqId.current) setError(e instanceof Error ? e.message : 'Erreur de chargement');
+      if (id === reqId.current) setError(errMessage(e, 'Erreur de chargement'));
     } finally {
       if (id === reqId.current) setLoading(false);
     }

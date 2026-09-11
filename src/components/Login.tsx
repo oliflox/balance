@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { errMessage } from '../lib/compute';
 import { fetchPublicStats } from '../lib/data';
 import type { PublicStats } from '../lib/data';
 import { useRoute } from '../lib/route';
@@ -78,7 +79,7 @@ export default function Login() {
       await resetPassword(email);
       setNotice('Lien envoyé — vérifie ta boîte mail.');
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Erreur');
+      setErr(errMessage(e, 'Erreur'));
     } finally {
       setResetBusy(false);
     }
@@ -268,7 +269,7 @@ function HeroStat({ value, label, accent }: { value: number; label: string; acce
 }
 
 function translateAuthError(e: unknown): string {
-  const msg = e instanceof Error ? e.message : String(e);
+  const msg = errMessage(e, '');
   if (/invalid login credentials/i.test(msg)) return 'Email ou mot de passe incorrect.';
   if (/already registered|already exists/i.test(msg)) return 'Un compte existe déjà avec cet email. Connecte-toi.';
   if (/signups? not allowed|disabled/i.test(msg)) return "Les inscriptions sont fermées côté Supabase. Active-les dans Authentication → Sign In / Providers.";

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { initialsOf, r1, validateProfile } from '../lib/compute';
+import { errMessage, initialsOf, r1, validateProfile } from '../lib/compute';
 import { hrefFor } from '../lib/route';
 import { LIME, ORANGE, panel, primaryBtn } from '../theme';
 import type { Member, Room } from '../types';
@@ -119,7 +119,7 @@ function MembersCard({
       await onRemove(m.id);
       onToast(m.name + ' a été retiré de la room.');
     } catch (e) {
-      onToast(e instanceof Error ? e.message : 'Erreur');
+      onToast(errMessage(e, 'Erreur'));
     } finally {
       setBusy('');
       setPending('');
@@ -216,7 +216,7 @@ function ProfileCard({
       await onSave({ name: name.trim(), color, start: r1(s), target: r1(t) });
       onToast('Profil mis à jour.');
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Erreur');
+      setErr(errMessage(e, 'Erreur'));
     } finally {
       setBusy(false);
     }
@@ -266,7 +266,7 @@ function PasswordCard({ onSave, onToast }: { onSave: (p: string) => Promise<void
       setConfirm('');
       onToast('Mot de passe mis à jour.');
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Erreur');
+      setErr(errMessage(e, 'Erreur'));
     } finally {
       setBusy(false);
     }
@@ -304,7 +304,7 @@ function EmailCard({ currentEmail, onSave, onToast }: { currentEmail: string; on
       await onSave(email);
       onToast('Email de confirmation envoyé. Clique sur le lien reçu pour valider.');
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Erreur');
+      setErr(errMessage(e, 'Erreur'));
     } finally {
       setBusy(false);
     }

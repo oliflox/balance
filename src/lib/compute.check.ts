@@ -1,7 +1,7 @@
 // Self-check for buildTrophies. No test runner in this project, so run it with
 // the esbuild that ships with vite:
 //   npx esbuild src/lib/compute.check.ts --bundle --platform=node --outfile=check.mjs && node check.mjs && rm check.mjs
-import { buildTrophies, calWeek, dashboard, validateProfile } from './compute';
+import { buildTrophies, calWeek, dashboard, errMessage, validateProfile } from './compute';
 import { hrefFor, parseRoute } from './route';
 import type { Entry, Member } from '../types';
 
@@ -158,6 +158,15 @@ ok(buildTrophies([member('Grand', 60, [e('2026-07-27', 75)], 72)], 0)
   .some((x) => x.title === 'Objectif atteint'), 'cible dépassée par le haut = atteinte');
 ok(!buildTrophies([member('Petit', 60, [e('2026-07-27', 61)], 72)], 0)
   .some((x) => x.title === 'Objectif atteint'), 'en dessous de sa cible haute = pas atteinte');
+
+// ---- Messages d'erreur : ne jamais avaler ce que Postgres a dit ----
+ok(errMessage(new Error('boum')) === 'boum', 'une vraie Error');
+ok(errMessage({ message: 'new row violates row-level security policy', code: '42501' })
+  === 'new row violates row-level security policy (42501)', 'un objet nu Supabase, code compris');
+ok(errMessage({ message: 'permission denied', hint: 'GRANT SELECT…' }).includes('GRANT SELECT'),
+  'le hint est conservé, c’est souvent lui qui donne la solution');
+ok(errMessage({}, 'repli') === 'repli', 'un objet vide retombe sur le repli');
+ok(errMessage(undefined, 'repli') === 'repli', 'undefined aussi');
 
 // ---- Routes : l'URL doit survivre à l'aller-retour, et l'inconnu tomber en 404 ----
 const roundTrip = (r: Parameters<typeof hrefFor>[0]) => JSON.stringify(parseRoute(hrefFor(r))) === JSON.stringify(r);

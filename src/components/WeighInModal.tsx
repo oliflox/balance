@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
-import { calWeek, dir, fmtDate, last, r1 } from '../lib/compute';
+import { calWeek, dir, errMessage, fmtDate, last, r1 } from '../lib/compute';
 import { FIELDS, LIME, ORANGE, primaryBtn } from '../theme';
 import type { FieldKey } from '../theme';
 import type { WeighInForm } from '../types';
@@ -69,7 +69,7 @@ export default function WeighInModal({ onClose, onSaved }: Props) {
           (d * goalDir >= 0 ? 'Le groupe applaudit.' : 'Le groupe rit.')
       );
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Erreur à la publication.');
+      setErr(errMessage(e, 'Erreur à la publication.'));
       setBusy(false);
     }
   };

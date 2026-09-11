@@ -4,6 +4,20 @@ import type { Member, ReactionIndex } from '../types';
 
 export const r1 = (n: number) => Math.round(n * 10) / 10;
 
+// Supabase renvoie tantôt une Error, tantôt un objet nu { message, details, hint,
+// code }. Tester `instanceof Error` laissait tomber le second cas et affichait un
+// « Erreur » muet, alors que Postgres avait dit précisément ce qui n'allait pas.
+export function errMessage(e: unknown, fallback = 'Erreur inattendue.'): string {
+  if (typeof e === 'string' && e.trim()) return e;
+  if (e && typeof e === 'object') {
+    const o = e as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown };
+    const parts = [o.message, o.details, o.hint].filter((v): v is string => typeof v === 'string' && !!v.trim());
+    if (parts.length) return parts.join(' — ') + (typeof o.code === 'string' && o.code ? ` (${o.code})` : '');
+    if (typeof o.code === 'string' && o.code) return `${fallback} (${o.code})`;
+  }
+  return fallback;
+}
+
 export const initialsOf = (name: string) => name.slice(0, 2).toUpperCase();
 
 export function fmtDate(ts: number, long = false): string {

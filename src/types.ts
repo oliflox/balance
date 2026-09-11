@@ -19,6 +19,7 @@ export interface Room {
   id: string;
   name: string;
   code: string; // the invite code — the only way into a private room
+  createdAt: number; // ms — week 1 of this room, whatever the app's own epoch says
   isMine: boolean; // true when the signed-in user created it
 }
 

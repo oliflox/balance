@@ -8,6 +8,7 @@ interface RoomRow {
   name: string;
   code: string;
   owner_id: string;
+  created_at: string;
 }
 
 interface ProfileRow {
@@ -58,7 +59,7 @@ interface FetchResult {
 // signup we need to be able to resume.
 export async function fetchAll(userId: string | null): Promise<FetchResult> {
   const [roomsRes, profilesRes, entriesRes, reactsRes] = await Promise.all([
-    supabase.from('balance_rooms').select('id,name,code,owner_id'),
+    supabase.from('balance_rooms').select('id,name,code,owner_id,created_at'),
     supabase.from('balance_profiles').select('*'),
     supabase.from('balance_entries').select('*').order('week', { ascending: true }),
     supabase.from('balance_reactions').select('entry_id,user_id,emoji'),
@@ -124,7 +125,13 @@ export async function fetchAll(userId: string | null): Promise<FetchResult> {
 
   const roomRow = ((roomsRes.data ?? []) as RoomRow[] | null)?.[0];
   const room: Room | null = roomRow
-    ? { id: roomRow.id, name: roomRow.name, code: roomRow.code, isMine: roomRow.owner_id === userId }
+    ? {
+        id: roomRow.id,
+        name: roomRow.name,
+        code: roomRow.code,
+        createdAt: Date.parse(roomRow.created_at),
+        isMine: roomRow.owner_id === userId,
+      }
     : null;
 
   return { room, members, reactions };

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useData } from '../context/DataContext';
-import { calWeek, dir, errMessage, fmtDate, last, r1 } from '../lib/compute';
+import { dir, errMessage, fmtDate, last, r1 } from '../lib/compute';
 import { FIELDS, LIME, ORANGE, primaryBtn } from '../theme';
 import type { FieldKey } from '../theme';
 import type { WeighInForm } from '../types';
@@ -12,14 +12,13 @@ interface Props {
 }
 
 export default function WeighInModal({ onClose, onSaved }: Props) {
-  const { me, saveWeighIn } = useData();
+  const { me, nowWeek, week0, saveWeighIn } = useData();
 
   const prevEntry = me && me.entries.length ? last(me) : null;
   const prevWeight = prevEntry ? prevEntry.weight : me?.start ?? 0;
   // One weigh-in per calendar week. The database has the last word (unique key
   // on profile + week); this only spares the member a pointless form.
-  const thisWeek = calWeek(Date.now());
-  const alreadyWeighed = !!me?.entries.some((e) => e.week === thisWeek);
+  const alreadyWeighed = !!me?.entries.some((e) => e.week === nowWeek);
   // Pre-fill a small step the member's way, whichever way that is.
   const goalDir = me ? dir(me) : -1;
 
@@ -107,7 +106,7 @@ export default function WeighInModal({ onClose, onSaved }: Props) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16 }}>
           <div>
             <div style={{ fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: LIME }}>
-              Semaine {thisWeek + 1} · {nextDateLong}
+              Semaine {nowWeek - week0 + 1} · {nextDateLong}
             </div>
             <h2 style={{ fontFamily: 'Anton, sans-serif', fontSize: 'clamp(28px, 4vw, 38px)', margin: '10px 0 0', textTransform: 'uppercase' }}>
               {alreadyWeighed ? 'Déjà fait' : 'Nouvelle pesée'}

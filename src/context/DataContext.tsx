@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 import { addWeighIn, createProfile, createRoom, fetchAll, removeMember, roomByCode, toggleReaction, updateProfile } from '../lib/data';
 import type { NewProfile, NewWeighIn, ProfileUpdate } from '../lib/data';
-import { errMessage, hasEntries } from '../lib/compute';
+import { calWeek, errMessage, hasEntries } from '../lib/compute';
 import type { Member, ReactionIndex, Room } from '../types';
 
 interface DataValue {
@@ -14,6 +14,8 @@ interface DataValue {
   activeMembers: Member[]; // profiles with at least one weigh-in
   reactions: ReactionIndex;
   me: Member | null; // the profile linked to the signed-in user
+  nowWeek: number; // semaine calendaire courante, absolue
+  week0: number; // semaine d'ouverture de la room : l'origine de tout affichage
   openRoom: (name: string) => Promise<string>;
   findRoom: (code: string) => Promise<{ id: string; name: string }>;
   createMyProfile: (p: NewProfile) => Promise<void>;
@@ -57,6 +59,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return () => clearInterval(id);
   }, [refresh]);
 
+  const nowWeek = calWeek(Date.now());
+  // Sans room lisible, on retombe sur l'époque de l'appli : les numéros seront
+  // décalés, mais rien ne casse.
+  const week0 = room ? calWeek(room.createdAt) : 0;
+
   const activeMembers = useMemo(() => members.filter(hasEntries), [members]);
   const me = useMemo(() => members.find((m) => m.isMe) ?? null, [members]);
   const value = useMemo<DataValue>(
@@ -64,6 +71,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       loading,
       error,
       room,
+      nowWeek,
+      week0,
       members,
       activeMembers,
       reactions,
@@ -110,7 +119,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       },
     }),
-    [loading, error, room, members, activeMembers, reactions, me, refresh, user]
+    [loading, error, room, nowWeek, week0, members, activeMembers, reactions, me, refresh, user]
   );
 
   return <DataCtx.Provider value={value}>{children}</DataCtx.Provider>;

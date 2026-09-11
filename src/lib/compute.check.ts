@@ -1,7 +1,7 @@
 // Self-check for buildTrophies. No test runner in this project, so run it with
 // the esbuild that ships with vite:
 //   npx esbuild src/lib/compute.check.ts --bundle --platform=node --outfile=check.mjs && node check.mjs && rm check.mjs
-import { buildTrophies, calWeek, dashboard, errMessage, validateProfile } from './compute';
+import { buildTrophies, calWeek, dashboard, errMessage, personVals, validateProfile } from './compute';
 import { hrefFor, parseRoute } from './route';
 import type { Entry, Member } from '../types';
 
@@ -158,6 +158,28 @@ ok(buildTrophies([member('Grand', 60, [e('2026-07-27', 75)], 72)], 0)
   .some((x) => x.title === 'Objectif atteint'), 'cible dépassée par le haut = atteinte');
 ok(!buildTrophies([member('Petit', 60, [e('2026-07-27', 61)], 72)], 0)
   .some((x) => x.title === 'Objectif atteint'), 'en dessous de sa cible haute = pas atteinte');
+
+// ---- Une room neuve démarre à la semaine 1, pas à celle de l'appli ----
+// Room ouverte en semaine 6 (absolue), une seule pesée, on est en semaine 6.
+const neuf = member('Neuf', 90, [e('2026-09-07', 90)], 80, D('2026-09-07'));
+const perso = personVals(neuf, neuf.id, 6, 6);
+ok(perso.weeks.length === 1, `une seule case pour une room d'une semaine, reçu ${perso.weeks.length}`);
+ok(perso.weeks[0].on, 'et elle est cochée, la pesée est faite');
+ok(perso.weeks[0].label.startsWith('S1'), `la première case est S1, reçu ${perso.weeks[0].label}`);
+ok(dashboard([neuf], neuf.id, 'kg', {}, {}, 6, 6).weekNo === 1, 'le bandeau annonce la semaine 1');
+
+// Deux semaines plus tard, sans nouvelle pesée : le trou doit se voir.
+const troue = personVals(neuf, neuf.id, 8, 6);
+ok(troue.weeks.length === 3, `trois cases en semaine 3, reçu ${troue.weeks.length}`);
+ok(troue.weeks.filter((w) => !w.on).length === 2, 'deux semaines sautées, visibles comme telles');
+ok(troue.weeks[2].label.endsWith('absent'), 'la semaine en cours est marquée absente');
+
+// Arrivé en semaine 3 d'une room ouverte en semaine 6 absolue : on ne lui
+// compte pas les semaines d'avant, mais son étiquette reste celle de la room.
+const tardif2 = member('Tardif', 70, [e('2026-09-21', 70)], 60, D('2026-09-21'));
+const vuTardif = personVals(tardif2, tardif2.id, 8, 6);
+ok(vuTardif.weeks.length === 1, `une case pour qui vient d'arriver, reçu ${vuTardif.weeks.length}`);
+ok(vuTardif.weeks[0].label.startsWith('S3'), `étiquetée S3, la semaine de la room, reçu ${vuTardif.weeks[0].label}`);
 
 // ---- Messages d'erreur : ne jamais avaler ce que Postgres a dit ----
 ok(errMessage(new Error('boum')) === 'boum', 'une vraie Error');

@@ -120,7 +120,11 @@ function mergeDots(raw: { x: number; y: number; name: string; color: string; wei
 const WEEK_ANCHOR = BASE_DATE - ((new Date(BASE_DATE).getUTCDay() + 6) % 7) * 86400000;
 export const calWeek = (date: number) => Math.floor((date - WEEK_ANCHOR) / WEEK_MS);
 
-export function groupChart(members: Member[], metric: 'pct' | 'kg', hidden: Record<string, boolean>, meId: string, nowWeek: number) {
+// week0 = la semaine où la room a été créée. Les semaines stockées restent
+// absolues (c'est une clé, elle ne doit pas bouger) ; tout ce qui s'affiche est
+// compté depuis l'ouverture de la room, sinon une room créée aujourd'hui
+// annoncerait « semaine 7 » parce que l'appli, elle, tourne depuis sept semaines.
+export function groupChart(members: Member[], metric: 'pct' | 'kg', hidden: Record<string, boolean>, meId: string, nowWeek: number, week0: number) {
   const W = 900, H = 330, PAD = 14;
   // Runs to the current week even if nobody has weighed in yet: a silent week
   // should show as a gap at the right edge, not vanish from the axis.
@@ -134,7 +138,8 @@ export function groupChart(members: Member[], metric: 'pct' | 'kg', hidden: Reco
     lo = Math.floor(Math.min(...all) - 3);
     hi = Math.ceil(Math.max(...all) + 3);
   }
-  const x = (wk: number) => (wk / Math.max(1, maxWeek)) * (W - 8) + 4;
+  const span = Math.max(1, maxWeek - week0);
+  const x = (wk: number) => ((wk - week0) / span) * (W - 8) + 4;
   const y = (v: number) => H - PAD - ((v - lo) / (hi - lo)) * (H - PAD * 2);
 
   // Hidden members keep their ghost line but drop out of the dots entirely:
@@ -155,7 +160,7 @@ export function groupChart(members: Member[], metric: 'pct' | 'kg', hidden: Reco
 
   // One label per week: they naturally dedupe and pack closer together
   // (space-between layout) as the contest runs for more weeks.
-  const xLabels = Array.from({ length: maxWeek + 1 }, (_, i) => String(i + 1));
+  const xLabels = Array.from({ length: maxWeek - week0 + 1 }, (_, i) => String(i + 1));
   return { series, dots, yLabels, xLabels, maxWeek };
 }
 
@@ -163,15 +168,19 @@ export const gridLines = () => [0, 1, 2, 3, 4].map((i) => ({ y: 14 + (i * (330 -
 
 // ---- Personal page -----------------------------------------------------------
 
-export function personVals(m: Member, meId: string) {
+export function personVals(m: Member, meId: string, nowWeek: number, week0: number) {
   const es = m.entries;
   const l = es[es.length - 1];
   const W = 900, H = 300, PAD = 16;
-  const maxWeek = l.week;
+  // Le suivi démarre à l'arrivée du membre, jamais avant l'ouverture de la room :
+  // personne n'a à répondre de semaines où il n'existait pas. Il court jusqu'à la
+  // semaine en cours, pour qu'une semaine sautée se voie comme un trou.
+  const firstWeek = Math.max(week0, joinWeekOf(m));
+  const span = Math.max(1, nowWeek - firstWeek);
   const all = es.map((e) => e.weight).concat([m.target]);
   const lo = Math.floor(Math.min(...all) - 1.5);
   const hi = Math.ceil(Math.max(...all) + 1.5);
-  const x = (w: number) => (w / Math.max(1, maxWeek)) * (W - 10) + 5;
+  const x = (w: number) => ((w - firstWeek) / span) * (W - 10) + 5;
   const y = (v: number) => H - PAD - ((v - lo) / (hi - lo)) * (H - PAD * 2);
   const pts = es.map((e) => [x(e.week), y(e.weight)]);
 
@@ -191,12 +200,12 @@ export function personVals(m: Member, meId: string) {
   const weekSet: Record<number, (typeof es)[number]> = {};
   es.forEach((e) => (weekSet[e.week] = e));
   const weeks: { on: boolean; label: string; color: string }[] = [];
-  for (let k = 0; k <= maxWeek; k++) {
+  for (let k = firstWeek; k <= nowWeek; k++) {
     const on = !!weekSet[k];
     weeks.push({
       on,
       color: on ? m.color : 'rgba(242,240,230,.12)',
-      label: 'S' + (k + 1) + (on ? ' · ' + weekSet[k].weight + ' kg' : ' · absent'),
+      label: 'S' + (k - week0 + 1) + (on ? ' · ' + weekSet[k].weight + ' kg' : ' · absent'),
     });
   }
 
@@ -391,9 +400,10 @@ export function dashboard(
   metric: 'pct' | 'kg',
   hidden: Record<string, boolean>,
   reactions: ReactionIndex,
-  nowWeek = calWeek(Date.now())
+  nowWeek = calWeek(Date.now()),
+  week0 = 0
 ) {
-  const chart = groupChart(members, metric, hidden, meId, nowWeek);
+  const chart = groupChart(members, metric, hidden, meId, nowWeek, week0);
   const sorted = members.slice().sort((a, b) => pctProgress(b) - pctProgress(a));
   const maxPct = (sorted.length ? pctProgress(sorted[0]) : 0) || 1;
 
@@ -430,7 +440,7 @@ export function dashboard(
         initials: initialsOf(m.name),
         name: m.name,
         text: txt,
-        when: 'Semaine ' + (l.week + 1) + ' · ' + fmtDate(l.date),
+        when: 'Semaine ' + (l.week - week0 + 1) + ' · ' + fmtDate(l.date),
         entryId: l.id,
         reactions: (['🔥', '💪', '😂', '🐐'] as const).map((emoji) => {
           const r = reactions[l.id]?.[emoji];
@@ -478,7 +488,7 @@ export function dashboard(
 
   return {
     chart,
-    weekNo: nowWeek + 1,
+    weekNo: nowWeek - week0 + 1,
     totalMoved,
     totalEntries,
     // Not members × weeks: someone who joined last week only owes one weigh-in.

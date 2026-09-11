@@ -12,14 +12,14 @@ interface Props {
 const PLOT_H = 'clamp(240px, 34vw, 340px)';
 
 export default function Dashboard({ onOpenPerson, onNewWeighIn }: Props) {
-  const { members, activeMembers, me, room, reactions, react } = useData();
+  const { members, activeMembers, me, room, nowWeek, week0, reactions, react } = useData();
   const [metric, setMetric] = useState<'pct' | 'kg'>('pct');
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const [tip, setTip] = useState<ChartDot | null>(null);
 
   const vm = useMemo(
-    () => dashboard(activeMembers, me?.id ?? '', metric, hidden, reactions),
-    [activeMembers, me?.id, metric, hidden, reactions]
+    () => dashboard(activeMembers, me?.id ?? '', metric, hidden, reactions, nowWeek, week0),
+    [activeMembers, me?.id, metric, hidden, reactions, nowWeek, week0]
   );
   const grid = gridLines();
   const meNoEntries = me && me.entries.length === 0;

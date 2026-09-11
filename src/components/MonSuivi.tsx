@@ -13,7 +13,7 @@ const TABLE_HEAD = ['Date', 'Poids', 'Δ', 'Taille', 'Hanches', 'Bras', 'Cuisse'
 const MEASURE_COLS = ['taille', 'hanches', 'bras', 'cuisse', 'poitrine', 'mg'] as const;
 
 export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
-  const { members, me } = useData();
+  const { members, me, nowWeek, week0 } = useData();
   const member = useMemo(() => members.find((m) => m.id === focusId) ?? me, [members, focusId, me]);
   const grid = gridLines();
   const [tip, setTip] = useState<{ x: number; y: number; text: string; color: string } | null>(null);
@@ -42,7 +42,7 @@ export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
     );
   }
 
-  const p = personVals(member, me?.id ?? '');
+  const p = personVals(member, me?.id ?? '', nowWeek, week0);
   const gradId = `fillMe-${member.id}`;
 
   return (
@@ -139,7 +139,7 @@ export default function MonSuivi({ focusId, onNewWeighIn }: Props) {
             <div style={{ fontSize: 10.5, letterSpacing: '.16em', textTransform: 'uppercase', color: LIME }}>Série en cours</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 8 }}>
               <span style={{ fontFamily: 'Anton, sans-serif', fontSize: 46, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{p.streak}</span>
-              <span style={{ fontSize: 14, color: 'rgba(242,240,230,.6)' }}>semaines d'affilée</span>
+              <span style={{ fontSize: 14, color: 'rgba(242,240,230,.6)' }}>{p.streak > 1 ? 'semaines' : 'semaine'} d'affilée</span>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 16 }}>
               {p.weeks.map((w, i) => (

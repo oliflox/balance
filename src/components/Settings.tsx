@@ -27,7 +27,19 @@ export default function Settings({ onToast }: Props) {
       </section>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {room && <InviteCard room={room} onToast={onToast} />}
+        {room ? (
+          <InviteCard room={room} onToast={onToast} />
+        ) : (
+          // La lecture de room est non bloquante pour ne pas éteindre le
+          // tableau de bord ; encore faut-il dire pourquoi elle a disparu.
+          <Card title="Room indisponible" subtitle="Le code d'invitation ne peut pas être affiché.">
+            <p style={{ margin: 0, fontSize: 13.5, color: 'rgba(242,240,230,.55)', lineHeight: 1.55 }}>
+              Tes pesées s'affichent normalement, mais la base a refusé la lecture de la room.
+              C'est presque toujours un privilège manquant : la console du navigateur donne le
+              message exact de Postgres.
+            </p>
+          </Card>
+        )}
         {/* Le propriétaire seul voit ce panneau ; la base refuse de toute façon
             l'appel de quelqu'un d'autre. */}
         {room?.isMine && (
